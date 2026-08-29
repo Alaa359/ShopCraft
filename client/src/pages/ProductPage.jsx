@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getProduct } from '../api/client.js';
+import { useCartStore } from '../store/cartStore.js';
 
 // Image principale du produit (ou placeholder)
 function ProductGallery({ images, name }) {
@@ -36,6 +37,8 @@ export default function ProductPage() {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [added, setAdded] = useState(false);
+  const addItem = useCartStore((state) => state.addItem);
 
   useEffect(() => {
     let cancelled = false;
@@ -65,6 +68,13 @@ export default function ProductPage() {
   const price = Number(product.price).toFixed(2);
   const outOfStock = product.stock <= 0;
 
+  // Ajoute le produit au panier et affiche un retour visuel
+  function handleAdd() {
+    addItem(product);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1600);
+  }
+
   return (
     <div className="product">
       <Link to="/" className="product__back">
@@ -84,9 +94,13 @@ export default function ProductPage() {
             {outOfStock ? 'Rupture de stock' : `${product.stock} disponible(s)`}
           </p>
 
-          {/* Bouton d'ajout au panier : activé à l'étape 3 */}
-          <button className="product__add" disabled>
-            Ajouter au panier
+          {/* Ajout au panier (store Zustand) */}
+          <button
+            className={`product__add ${added ? 'product__add--added' : ''}`}
+            onClick={handleAdd}
+            disabled={outOfStock}
+          >
+            {added ? 'Ajouté ✓' : outOfStock ? 'Rupture de stock' : 'Ajouter au panier'}
           </button>
         </div>
       </div>

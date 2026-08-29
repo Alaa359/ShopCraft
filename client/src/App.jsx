@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar.jsx';
 import Home from './pages/Home.jsx';
 import ProductPage from './pages/ProductPage.jsx';
+import Cart from './pages/Cart.jsx';
 
 // Point d'entrée de l'application : navigation + routes
 export default function App() {
@@ -12,6 +13,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/products/:id" element={<ProductPage />} />
+          <Route path="/cart" element={<Cart />} />
           <Route path="*" element={<Home />} />
         </Routes>
       </main>
