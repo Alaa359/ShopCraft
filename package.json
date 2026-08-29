@@ -1,0 +1,14 @@
+{
+  "name": "shopcraft",
+  "version": "1.0.0",
+  "description": "Boutique en ligne complète avec dashboard admin (React + Vite, Node/Express, PostgreSQL/Prisma, Stripe)",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

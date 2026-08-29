@@ -1,0 +1,28 @@
+# Dépendances
+node_modules/
+
+# Environnement (ne jamais committer les secrets)
+.env
+.env.local
+.env.production
+
+# Builds
+dist/
+build/
+
+# Fichiers uploadés par les utilisateurs (stockés localement)
+server/uploads/*
+!server/uploads/.gitkeep
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Système / OS
+.DS_Store
+Thumbs.db
+
+# Éditeurs
+.vscode/
+.idea/
