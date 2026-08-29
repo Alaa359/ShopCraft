@@ -32,3 +32,28 @@ export function getProducts(params = {}) {
 export function getProduct(id) {
   return request(`/products/${id}`);
 }
+
+// ---------- Authentification ----------
+
+// Enregistre un nouveau compte utilisateur
+export function register(email, password) {
+  return request('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+// Connecte un utilisateur (renvoie { token, user })
+export function login(email, password) {
+  return request('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+// Récupère le profil de l'utilisateur connecté
+export function getMe(token) {
+  return request('/auth/me', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}

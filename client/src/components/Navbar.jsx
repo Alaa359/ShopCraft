@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
 import { useCartStore, selectCartCount } from '../store/cartStore.js';
+import { useAuthStore } from '../store/authStore.js';
 
 // Barre de navigation principale
 export default function Navbar() {
   const count = useCartStore(selectCartCount);
+  const user = useAuthStore((state) => state.user);
 
   return (
     <header className="navbar">
@@ -17,6 +19,11 @@ export default function Navbar() {
             Panier
             {count > 0 && <span className="navbar__badge">{count}</span>}
           </Link>
+          {user ? (
+            <Link to="/account">Mon compte</Link>
+          ) : (
+            <Link to="/login">Connexion</Link>
+          )}
         </div>
       </nav>
     </header>

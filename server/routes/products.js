@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
+import { auth } from '../middleware/auth.js';
+import { isAdmin } from '../middleware/isAdmin.js';
 
 const router = Router();
 
@@ -58,8 +60,8 @@ router.get('/:id', async (req, res, next) => {
 });
 
 // POST /api/products
-// Crée un nouveau produit (sans auth pour le moment)
-router.post('/', async (req, res, next) => {
+// Crée un nouveau produit (réservé aux administrateurs)
+router.post('/', auth, isAdmin, async (req, res, next) => {
   try {
     const { name, description, price, stock, category, images } = req.body;
 
@@ -87,8 +89,8 @@ router.post('/', async (req, res, next) => {
 });
 
 // PUT /api/products/:id
-// Met à jour tout ou partie d'un produit
-router.put('/:id', async (req, res, next) => {
+// Met à jour tout ou partie d'un produit (réservé aux administrateurs)
+router.put('/:id', auth, isAdmin, async (req, res, next) => {
   try {
     const { name, description, price, stock, category, images } = req.body;
 
@@ -117,7 +119,8 @@ router.put('/:id', async (req, res, next) => {
 });
 
 // DELETE /api/products/:id
-router.delete('/:id', async (req, res, next) => {
+// Supprime un produit (réservé aux administrateurs)
+router.delete('/:id', auth, isAdmin, async (req, res, next) => {
   try {
     const existing = await prisma.product.findUnique({
       where: { id: req.params.id },

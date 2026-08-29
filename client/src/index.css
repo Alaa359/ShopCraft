@@ -567,6 +567,125 @@ button {
   background: var(--success);
 }
 
+/* ===== Authentification ===== */
+.auth {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 48px 0 64px;
+}
+
+.auth__card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  box-shadow: var(--shadow);
+}
+
+.auth__title {
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+}
+
+.auth__form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth__label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.auth__input {
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-weight: 400;
+}
+
+.auth__input:focus {
+  outline: 2px solid var(--primary);
+  border-color: transparent;
+}
+
+.auth__submit {
+  margin-top: 6px;
+}
+
+.auth__error {
+  background: #fef2f2;
+  color: var(--danger);
+  border: 1px solid #fecaca;
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+}
+
+.auth__switch {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.auth__switch a {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.auth__switch a:hover {
+  text-decoration: underline;
+}
+
+/* ===== Compte utilisateur ===== */
+.account {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 40px 0 64px;
+}
+
+.account__title {
+  font-size: 1.7rem;
+  margin-bottom: 24px;
+}
+
+.account__card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.account__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.account__label {
+  color: var(--text-muted);
+}
+
+.account__section {
+  margin-bottom: 24px;
+}
+
+.account__subtitle {
+  font-size: 1.2rem;
+  margin-bottom: 8px;
+}
+
 @media (max-width: 700px) {
   .product__layout {
     grid-template-columns: 1fr;
