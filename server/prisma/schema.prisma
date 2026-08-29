@@ -1,0 +1,100 @@
+// Schéma de base de données ShopCraft
+// PostgreSQL via Prisma ORM
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Rôles utilisateur
+enum Role {
+  USER
+  ADMIN
+}
+
+// Statuts possibles d'une commande
+enum OrderStatus {
+  PENDING // en attente
+  SHIPPED // expédiée
+  DELIVERED // livrée
+  CANCELLED // annulée
+}
+
+// Compte utilisateur (client ou admin)
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String // stocké haché (bcrypt)
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+
+  orders  Order[]
+  reviews Review[]
+}
+
+// Produit du catalogue
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  price       Decimal  @db.Decimal(10, 2)
+  stock       Int      @default(0)
+  category    String
+  images      String[] // URLs des images (tableau)
+  createdAt   DateTime @default(now())
+
+  orderItems OrderItem[]
+  reviews    Review[]
+
+  @@index([category])
+  @@index([name])
+}
+
+// Commande passée par un utilisateur
+model Order {
+  id        String      @id @default(cuid())
+  userId    String
+  status    OrderStatus @default(PENDING)
+  total     Decimal     @db.Decimal(10, 2)
+  createdAt DateTime    @default(now())
+
+  user   User        @relation(fields: [userId], references: [id])
+  items  OrderItem[]
+
+  @@index([userId])
+}
+
+// Ligne d'une commande (produit + quantité + prix figé au moment de l'achat)
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Decimal @db.Decimal(10, 2)
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([productId])
+}
+
+// Avis / note laissé par un utilisateur sur un produit
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  userId    String
+  rating    Int // de 1 à 5 étoiles
+  comment   String
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@index([productId])
+
+  @@unique([productId, userId]) // un seul avis par utilisateur et par produit
+}
