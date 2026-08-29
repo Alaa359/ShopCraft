@@ -1,17 +1,31 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore.js';
+import { getMyOrders } from '../api/client.js';
 
-// Page compte : profil de l'utilisateur connecté
-// (l'historique de commandes sera branché à l'étape 5)
+// Libellés français des statuts de commande
+const STATUS_LABELS = {
+  PENDING: 'En attente',
+  SHIPPED: 'Expédiée',
+  DELIVERED: 'Livrée',
+  CANCELLED: 'Annulée',
+};
+
+// Page compte : profil + historique des commandes
 export default function Account() {
   const { user, logout, fetchMe } = useAuthStore();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(!user);
+  const [orders, setOrders] = useState(null);
+  const [error, setError] = useState(null);
 
-  // Rafraîchit le profil au montage (utilisateur déjà connecté après reload)
   useEffect(() => {
     fetchMe()
+      .then(() => {
+        const currentToken = useAuthStore.getState().token;
+        return getMyOrders(currentToken);
+      })
+      .then(setOrders)
       .catch(() => useAuthStore.getState().logout())
       .finally(() => setLoading(false));
   }, []);
@@ -50,7 +64,45 @@ export default function Account() {
 
       <section className="account__section">
         <h2 className="account__subtitle">Mes commandes</h2>
-        <p className="home__message">Vous n'avez pas encore de commande.</p>
+
+        {error && <p className="auth__error">{error}</p>}
+
+        {orders && orders.length === 0 && (
+          <p className="home__message">Vous n'avez pas encore de commande.</p>
+        )}
+
+        {orders && orders.length > 0 && (
+          <div className="orders">
+            {orders.map((order) => (
+              <div className="order" key={order.id}>
+                <div className="order__head">
+                  <span className="order__id">Commande #{order.id.slice(-8).toUpperCase()}</span>
+                  <span className={`order__status order__status--${order.status.toLowerCase()}`}>
+                    {STATUS_LABELS[order.status]}
+                  </span>
+                  <span className="order__date">
+                    {new Date(order.createdAt).toLocaleDateString('fr-FR')}
+                  </span>
+                </div>
+                <ul className="order__items">
+                  {order.items.map((item) => (
+                    <li className="order__item" key={item.id}>
+                      <Link to={`/products/${item.product.id}`} className="order__item-name">
+                        {item.product.name}
+                      </Link>
+                      <span>
+                        × {item.quantity} — {Number(item.price).toFixed(2)} €
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="order__total">
+                  Total : <strong>{Number(order.total).toFixed(2)} €</strong>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       <button className="btn btn--ghost" onClick={handleLogout}>

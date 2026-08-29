@@ -3,6 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import productsRouter from './routes/products.js';
 import authRouter from './routes/auth.js';
+import ordersRouter from './routes/orders.js';
+import paymentsRouter from './routes/payments.js';
 
 dotenv.config();
 
@@ -20,6 +22,8 @@ app.get('/api/health', (req, res) => {
 // Routes métiers
 app.use('/api/auth', authRouter);
 app.use('/api/products', productsRouter);
+app.use('/api/orders', ordersRouter);
+app.use('/api/payments', paymentsRouter);
 
 // 404 pour toute route inconnue
 app.use((req, res) => {

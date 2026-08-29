@@ -46,10 +46,9 @@ export default function Cart() {
           <strong>{total.toFixed(2)} €</strong>
         </div>
         <div className="cart__actions">
-          {/* Checkout activé à l'étape 5 */}
-          <button className="btn btn--primary" disabled>
+          <Link to="/checkout" className="btn btn--primary">
             Passer la commande
-          </button>
+          </Link>
           <button className="btn btn--ghost" onClick={clear}>
             Vider le panier
           </button>

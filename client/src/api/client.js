@@ -4,8 +4,11 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
 // Requête générique vers l'API avec gestion des erreurs
 async function request(path, options = {}) {
   const res = await fetch(`${API_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
     ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
   });
 
   if (!res.ok) {
@@ -54,6 +57,33 @@ export function login(email, password) {
 // Récupère le profil de l'utilisateur connecté
 export function getMe(token) {
   return request('/auth/me', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+// ---------- Commandes & Paiement ----------
+
+// Prépare le paiement d'un panier (renvoie { clientSecret, mode, total, publicKey })
+export function createPaymentIntent(token, items) {
+  return request('/payments/create-intent', {
+    method: 'POST',
+    body: JSON.stringify({ items }),
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+// Crée la commande après paiement (paymentIntentId optionnel)
+export function createOrder(token, items, paymentIntentId = null) {
+  return request('/orders', {
+    method: 'POST',
+    body: JSON.stringify({ items, paymentIntentId }),
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+// Historique des commandes de l'utilisateur connecté
+export function getMyOrders(token) {
+  return request('/orders/mine', {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
