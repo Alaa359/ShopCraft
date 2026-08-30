@@ -26,8 +26,10 @@
 
   /* Formes & profondeur */
   --radius: 4px;
+  --radius-lg: 8px;
   --shadow-sm: 0 1px 3px rgba(26, 26, 26, 0.06);
   --shadow-md: 0 6px 24px rgba(26, 26, 26, 0.08);
+  --shadow-lift: 0 14px 34px rgba(26, 26, 26, 0.14);
 
   /* Mise en page */
   --header-h: 64px;
@@ -688,14 +690,14 @@ code {
 .card {
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   overflow: hidden;
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+  transform: translateY(-4px);
 }
 
 .card__media {
@@ -732,6 +734,42 @@ code {
   font-size: 1.2rem;
   color: var(--muted);
   background: var(--bg-soft);
+}
+
+/* Badges d'information (stock faible / nouveau) : en haut à gauche de l'image */
+.card__badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.card__badge--low {
+  background: #fdecea;
+  color: var(--error);
+}
+
+.card__badge--new {
+  background: #e8f5e9;
+  color: var(--success);
+}
+
+/* Note moyenne (étoiles + nombre d'avis) sous le nom du produit */
+.card__rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.card__rating-count {
+  font-size: 0.78rem;
+  color: var(--muted);
 }
 
 /* Bouton "Ajouter au panier" : révélé au survol (toujours visible sur mobile) */
@@ -1070,40 +1108,137 @@ code {
 }
 
 /* ---------- Étoiles ---------- */
+/* Lecture seule : chaque étoile est une base grise + un calque doré
+   clippé à la largeur du remplissage (permet les notes partielles). */
 .stars {
   display: inline-flex;
   gap: 2px;
+  line-height: 1;
   font-size: 1rem;
-  letter-spacing: 1px;
 }
 
-.stars__item {
+.stars--sm {
+  font-size: 0.8rem;
+}
+
+.stars--lg {
+  font-size: 1.5rem;
+}
+
+.stars__cell {
+  position: relative;
+  display: inline-flex;
+}
+
+.stars__base {
   color: var(--border);
+}
+
+.stars__fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  color: var(--gold);
+}
+
+/* Sélecteur interactif (formulaire d'avis) : prévisualisation au survol */
+.stars__item {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--border);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.stars__item:hover {
+  transform: scale(1.15);
 }
 
 .stars__item--on {
   color: var(--gold);
 }
 
-.stars--pick .stars__item {
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: 1.4rem;
-  cursor: pointer;
-  transition: transform 0.15s ease;
-}
-
-.stars--pick .stars__item:hover {
-  transform: scale(1.15);
-}
-
 /* ---------- Avis ---------- */
+/* Synthèse : grande note à gauche + barres de répartition à droite */
 .reviews__summary {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+  align-items: start;
+  padding: 24px;
+  margin-bottom: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-soft);
+}
+
+@media (min-width: 640px) {
+  .reviews__summary {
+    grid-template-columns: 200px 1fr;
+  }
+}
+
+.reviews__score {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.reviews__score-num {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.reviews__score-count {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* Barres de répartition par étoile */
+.reviews__bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reviews__bar-row {
+  display: grid;
+  grid-template-columns: 32px 1fr 28px;
   align-items: center;
   gap: 10px;
-  margin-bottom: 20px;
+}
+
+.reviews__bar-label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-align: right;
+}
+
+.reviews__bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.reviews__bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--gold), #e6c24e);
+  transition: width 0.4s ease;
+}
+
+.reviews__bar-count {
+  font-size: 0.82rem;
+  color: var(--muted);
 }
 
 .reviews__average {
@@ -1177,12 +1312,19 @@ code {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .review {
-  padding: 16px 0;
-  border-bottom: 1px solid var(--border);
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  transition: box-shadow 0.2s ease;
+}
+
+.review:hover {
+  box-shadow: var(--shadow-sm);
 }
 
 .review__head {
@@ -1190,17 +1332,43 @@ code {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 6px;
+}
+
+/* Avatar circulaire avec l'initiale de l'auteur */
+.review__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  flex-shrink: 0;
 }
 
 .review__author {
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.92rem;
 }
 
 .review__date {
   margin-left: auto;
   font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.review__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 6px 46px;
+}
+
+.review__rating-label {
+  font-size: 0.8rem;
   color: var(--muted);
 }
 
@@ -1754,16 +1922,28 @@ code {
 
 .admin-sidebar {
   padding: 20px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--dark);
   color: #fff;
+  box-shadow: var(--shadow-md);
 }
 
 .admin-sidebar__brand {
   font-family: var(--font-display);
-  font-size: 1.25rem;
+  font-size: 1.3rem;
   font-weight: 700;
-  margin-bottom: 16px;
+  letter-spacing: 0.02em;
+  margin-bottom: 2px;
+}
+
+.admin-sidebar__brand-tag {
+  display: block;
+  margin-bottom: 18px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
 }
 
 .admin-sidebar__nav {
@@ -1773,10 +1953,11 @@ code {
 }
 
 .admin-sidebar__link {
+  position: relative;
   display: block;
-  padding: 9px 12px;
-  border-radius: var(--radius);
-  color: rgba(255, 255, 255, 0.7);
+  padding: 10px 12px 10px 16px;
+  border-radius: var(--radius-lg);
+  color: rgba(255, 255, 255, 0.72);
   font-size: 0.92rem;
   font-weight: 500;
   transition: background 0.2s ease, color 0.2s ease;
@@ -1784,11 +1965,25 @@ code {
 
 .admin-sidebar__link:hover {
   color: #fff;
+  background: rgba(255, 255, 255, 0.06);
 }
 
+/* Item actif : fond plus clair + barre verticale colorée à gauche */
 .admin-sidebar__link.active {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.13);
   color: #fff;
+  font-weight: 600;
+}
+
+.admin-sidebar__link.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 9px;
+  bottom: 9px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--gold);
 }
 
 .admin-sidebar__back {
@@ -1804,8 +1999,12 @@ code {
   color: var(--gold);
 }
 
+/* Zone de contenu : fond doux (#F7F5F2) et padding généreux */
 .admin-main {
   min-width: 0;
+  padding: 22px 24px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-soft);
 }
 
 .admin {
@@ -1837,7 +2036,7 @@ code {
 
 @media (min-width: 900px) {
   .admin-layout {
-    grid-template-columns: 230px 1fr;
+    grid-template-columns: 240px 1fr;
     gap: 28px;
     align-items: start;
   }
@@ -2088,7 +2287,8 @@ code {
 }
 
 .admin__field input,
-.admin__field textarea {
+.admin__field textarea,
+.admin__field select {
   padding: 11px 13px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -2098,9 +2298,24 @@ code {
 }
 
 .admin__field input:focus,
-.admin__field textarea:focus {
+.admin__field textarea:focus,
+.admin__field select:focus {
   border-color: var(--accent);
   outline: none;
+}
+
+/* Lien d'action admin ("Voir toutes les commandes") */
+.admin__link {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.admin__link:hover {
+  text-decoration: underline;
 }
 
 .admin__upload {
@@ -2175,4 +2390,736 @@ code {
   gap: 10px;
   flex-wrap: wrap;
   margin-top: 8px;
+}
+
+/* En-tête de page admin */
+.admin__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.admin__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 600;
+}
+
+.admin__add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.admin__filter-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin__filter-label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* Onglets de filtrage (commandes par statut) */
+.admin__tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.admin__tab {
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.admin__tab:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.admin__tab.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* Panneau : carte blanche qui contient un tableau ou une liste */
+.admin__panel {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.admin__panel-title {
+  margin: 0;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  font-weight: 600;
+}
+
+/* Sous-titre utilisé comme entête de panneau */
+.admin__panel .admin__subtitle,
+.admin__panel .admin__panel-title {
+  margin: 0;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  font-weight: 600;
+}
+
+/* Tableau logé dans un panneau : pas de double bordure */
+.admin__panel .admin__table-wrap .admin__table {
+  border: none;
+  border-radius: 0;
+}
+
+/* Grille à deux colonnes (panneaux côte à côte) */
+.admin__grid2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+@media (min-width: 1100px) {
+  .admin__grid2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Corps d'un panneau contenant une table : défilement horizontal sur mobile */
+.admin__table-wrap {
+  overflow-x: auto;
+}
+
+.admin__table {
+  border-radius: var(--radius-lg);
+}
+
+/* Cartes de statistiques enrichies */
+.admin__cards {
+  column-gap: 16px;
+}
+
+.admin__card {
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  gap: 8px;
+  box-shadow: var(--shadow-sm);
+}
+
+.admin__card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.admin__card-icon {
+  width: 30px;
+  height: 30px;
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin__card-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.admin__card-delta--up {
+  background: #e8f5e9;
+  color: var(--success);
+}
+
+.admin__card-delta--down {
+  background: #fdecea;
+  color: var(--error);
+}
+
+.admin__card-delta--flat {
+  background: var(--bg-soft);
+  color: var(--muted);
+}
+
+.admin__card-value {
+  font-size: 1.7rem;
+}
+
+.admin__card-stars {
+  margin-top: 2px;
+}
+
+.admin__card-sub {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+/* Cellule note dans les tableaux (étoiles + valeur) */
+.admin__note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.admin__note-value {
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.admin__note-empty {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* Badge de statut en "pilule" qui sert aussi de menu déroulant */
+.admin__status--pill {
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 24px;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 14px) 55%, calc(100% - 10px) 55%;
+  background-size: 4px 4px, 4px 4px;
+  background-repeat: no-repeat;
+}
+
+.admin__status--pill:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Stock faible (seuil <= 5) : surligné */
+.admin__stock--low {
+  background: #fff3cd;
+  color: #9a6b00;
+}
+
+/* Boutons d'action par icône (modifier / supprimer / voir) */
+.admin__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.admin__icon-btn svg {
+  width: 17px;
+  height: 17px;
+}
+
+.admin__icon-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.admin__icon-btn--danger:hover {
+  color: var(--error);
+  border-color: var(--error);
+  background: #fdecea;
+}
+
+.admin__row-actions {
+  align-items: center;
+}
+
+/* Zone d'upload par glisser-déposer */
+.admin__dropzone {
+  padding: 26px 18px;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.admin__dropzone strong {
+  display: inline-block;
+  margin-bottom: 2px;
+  color: var(--accent);
+}
+
+.admin__dropzone:hover,
+.admin__dropzone--drag {
+  border-color: var(--accent);
+  background: #f4faf9;
+  color: var(--accent);
+}
+
+.admin__dropzone input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.admin__upload-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+  margin: 12px 0 4px;
+}
+
+.admin__upload-progress span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.2s ease;
+}
+
+.admin__upload-state {
+  margin: 8px 0 0;
+  font-size: 0.84rem;
+  color: var(--muted);
+}
+
+/* ---------- Modales ---------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(26, 26, 26, 0.55);
+  backdrop-filter: blur(2px);
+  animation: fade-in 0.18s ease;
+}
+
+.modal {
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  box-shadow: var(--shadow-lift);
+  animation: pop-in 0.2s ease;
+}
+
+.modal--wide {
+  max-width: 720px;
+}
+
+.modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.modal__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.modal__close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--bg-soft);
+  color: var(--muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.modal__close:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.modal__actions--danger {
+  justify-content: flex-start;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- Détail de commande (modal) ---------- */
+.order-detail__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px 24px;
+  margin-bottom: 22px;
+}
+
+@media (min-width: 600px) {
+  .order-detail__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.order-detail__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.order-detail__label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.order-detail__value {
+  font-size: 0.95rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.order-detail__value--total {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.order-detail__sub {
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.order-detail__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.order-detail__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.order-detail__thumb {
+  width: 46px;
+  height: 46px;
+  border-radius: var(--radius);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.order-detail__thumb--empty {
+  background: var(--bg-soft);
+}
+
+.order-detail__item-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.order-detail__item-name a {
+  color: inherit;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.order-detail__item-name a:hover {
+  color: var(--accent);
+}
+
+.order-detail__item-qty {
+  font-size: 0.9rem;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+/* Badge de statut simple (modal détail) */
+.order__status {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.order__status--pending {
+  background: #fff7e0;
+  color: #9a6b00;
+}
+
+.order__status--shipped {
+  background: #e8f1fa;
+  color: #1f4e79;
+}
+
+.order__status--delivered {
+  background: #e8f5e9;
+  color: var(--success);
+}
+
+.order__status--cancelled {
+  background: #fdecea;
+  color: var(--error);
+}
+
+/* ---------- Squelettes de chargement ---------- */
+.skeleton__block {
+  border-radius: var(--radius);
+  background: linear-gradient(90deg, #ececec 25%, #f7f7f7 50%, #ececec 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.3s infinite linear;
+}
+
+.skeleton__line {
+  margin: 6px 0;
+}
+
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.admin__table--skeleton td {
+  border-top: none;
+}
+
+.admin__table--skeleton tbody tr:nth-child(even) {
+  background: transparent;
+}
+
+.admin__table--skeleton tbody tr:hover {
+  background: transparent;
+}
+
+/* Liste produits les mieux notés */
+.admin__rated {
+  list-style: none;
+  margin: 0;
+  padding: 6px 20px 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin__rated-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.admin__rated-item:last-child {
+  border-bottom: none;
+}
+
+.admin__rated-rank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--bg-soft);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.admin__rated-thumb {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-lg);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.admin__rated-thumb--empty {
+  background: var(--bg-soft);
+}
+
+.admin__rated-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin__rated-name {
+  font-weight: 500;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin__rated-price {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.admin__rated-info a {
+  color: inherit;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.admin__rated-info a:hover {
+  color: var(--accent);
+}
+
+.admin__rated-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.admin__rated-sales {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* Cellule produit dans le tableau admin */
+.admin__product-name {
+  font-weight: 500;
+}
+
+.admin__note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.admin__note-text {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+/* Zone d'upload : intitulé + aide */
+.admin__dropzone-title {
+  display: block;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 3px;
+}
+
+.admin__dropzone-hint {
+  font-size: 0.82rem;
+}
+
+/* Modales : variantes et corps */
+.modal--sm {
+  max-width: 420px;
+}
+
+.modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.modal__text {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+/* Message "aucun avis" réutilisant le style catalogue */
+.reviews__empty {
+  padding: 20px 0;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  text-align: center;
 }

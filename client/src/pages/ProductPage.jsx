@@ -4,30 +4,25 @@ import { getProduct, addReview, updateReview, deleteReview } from '../api/client
 import { useCartStore } from '../store/cartStore.js';
 import { useUiStore } from '../store/uiStore.js';
 import { useAuthStore } from '../store/authStore.js';
+import RatingStars from '../components/RatingStars.jsx';
 
-// Pastille d'étoiles en lecture seule
-function Stars({ value }) {
-  return (
-    <span className="stars" aria-label={`${value} étoile(s) sur 5`}>
-      {[1, 2, 3, 4, 5].map((i) => (
-        <span key={i} className={`stars__item ${i <= value ? 'stars__item--on' : ''}`}>
-          ★
-        </span>
-      ))}
-    </span>
-  );
-}
-
-// Sélecteur de note interactif (1 à 5 étoiles)
+// Sélecteur de note interactif (1 à 5 étoiles) avec prévisualisation au survol
 function StarPicker({ value, onChange }) {
+  const [hover, setHover] = useState(null);
+  const active = hover ?? value; // survol prioritaire pour la prévisualisation
+
   return (
-    <div className="stars stars--pick">
+    <div
+      className="stars stars--pick"
+      onMouseLeave={() => setHover(null)}
+    >
       {[1, 2, 3, 4, 5].map((i) => (
         <button
           key={i}
           type="button"
-          className={`stars__item ${i <= value ? 'stars__item--on' : ''}`}
+          className={`stars__item ${i <= active ? 'stars__item--on' : ''}`}
           onClick={() => onChange(i)}
+          onMouseEnter={() => setHover(i)}
           aria-label={`${i} étoile${i > 1 ? 's' : ''}`}
         >
           ★
@@ -37,11 +32,14 @@ function StarPicker({ value, onChange }) {
   );
 }
 
-// Masque partiellement l'email de l'auteur (ex. j***@mail.com)
+// Masque partiellement l'email de l'auteur (ex. j***@mail.com) + initiale d'avatar
 function maskEmail(email = '') {
   const at = email.indexOf('@');
   if (at <= 1) return email;
   return `${email[0]}${'*'.repeat(at - 1)}${email.slice(at)}`;
+}
+function avatarInitial(email = '') {
+  return (email[0] || '?').toUpperCase();
 }
 
 // Galerie : image principale + miniatures
@@ -191,6 +189,18 @@ export default function ProductPage() {
   const average = reviews.length
     ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
     : 0;
+
+  // Répartition par note (5 → 1) en pourcentage pour les barres
+  const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  reviews.forEach((r) => {
+    if (counts[r.rating] !== undefined) counts[r.rating] += 1;
+  });
+  const distribution = [5, 4, 3, 2, 1].map((star) => ({
+    star,
+    count: counts[star],
+    percent: reviews.length ? Math.round((counts[star] / reviews.length) * 100) : 0,
+  }));
+
   const myReview = authUser ? reviews.find((r) => r.user?.id === authUser.id) : null;
   const showForm = myReview ? Boolean(editingId) : true;
 
@@ -225,7 +235,7 @@ export default function ProductPage() {
 
           {reviews.length > 0 ? (
             <button type="button" className="product__rating" onClick={showAvis}>
-              <Stars value={Math.round(average)} />
+              <RatingStars value={average} size="md" />
               <span>
                 {average.toFixed(1)} / 5 ({reviews.length} avis)
               </span>
@@ -316,8 +326,37 @@ export default function ProductPage() {
             <section className="reviews">
               {reviews.length > 0 && (
                 <div className="reviews__summary">
-                  <Stars value={Math.round(average)} />
-                  <span className="reviews__average">{average.toFixed(1)} / 5</span>
+                  {/* Note moyenne en grand chiffre + étoiles */}
+                  <div className="reviews__score">
+                    <span className="reviews__score-num">{average.toFixed(1)}</span>
+                    <RatingStars value={average} size="lg" />
+                    <span className="reviews__score-count">
+                      sur {reviews.length} avis
+                    </span>
+                  </div>
+
+                  {/* Barres de répartition par étoile */}
+                  <div className="reviews__bars">
+                    {distribution.map(({ star, count, percent }) => (
+                      <div className="reviews__bar-row" key={star}>
+                        <span className="reviews__bar-label">{star}★</span>
+                        <div
+                          className="reviews__bar"
+                          role="progressbar"
+                          aria-label={`${percent} % d'avis ${star} étoile(s)`}
+                          aria-valuenow={percent}
+                          aria-valuemin="0"
+                          aria-valuemax="100"
+                        >
+                          <div
+                            className="reviews__bar-fill"
+                            style={{ width: `${percent}%` }}
+                          />
+                        </div>
+                        <span className="reviews__bar-count">{count}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -364,7 +403,8 @@ export default function ProductPage() {
                 ) : (
                   <div className="reviews__mine">
                     <p className="reviews__mine-text">
-                      Vous avez noté ce produit : <Stars value={myReview.rating} />
+                      Vous avez noté ce produit :{' '}
+                      <RatingStars value={myReview.rating} size="sm" />
                     </p>
                     <div className="reviews__actions">
                       <button className="btn btn--primary" onClick={() => startEdit(myReview)}>
@@ -395,11 +435,20 @@ export default function ProductPage() {
                   {reviews.map((review) => (
                     <li className="review" key={review.id}>
                       <div className="review__head">
-                        <Stars value={review.rating} />
-                        <span className="review__author">{maskEmail(review.user?.email)}</span>
+                        {/* Avatar : initiale de l'auteur */}
+                        <span className="review__avatar">
+                          {avatarInitial(review.user?.email)}
+                        </span>
+                        <span className="review__author">
+                          {maskEmail(review.user?.email)}
+                        </span>
                         <span className="review__date">
                           {new Date(review.createdAt).toLocaleDateString('fr-FR')}
                         </span>
+                      </div>
+                      <div className="review__meta">
+                        <RatingStars value={review.rating} size="sm" />
+                        <span className="review__rating-label">{review.rating}/5</span>
                       </div>
                       <p className="review__comment">{review.comment}</p>
                     </li>

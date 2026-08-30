@@ -28,8 +28,23 @@ router.get('/', async (req, res, next) => {
     const products = await prisma.product.findMany({
       where,
       orderBy: { createdAt: 'desc' },
+      // Champs additifs (présentation) : nombre d'avis + note moyenne calculés
+      // depuis les Review sans modifier la forme existante des produits.
+      include: {
+        _count: { select: { reviews: true } },
+        reviews: { select: { rating: true } },
+      },
     });
-    res.json(products);
+
+    const enriched = products.map(({ reviews, _count, ...product }) => ({
+      ...product,
+      reviewCount: _count.reviews,
+      avgRating:
+        reviews.length > 0
+          ? +(reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+          : 0,
+    }));
+    res.json(enriched);
   } catch (err) {
     next(err);
   }
