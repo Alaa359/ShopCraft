@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuthStore } from '../../store/authStore.js';
+import { useAdminSearch } from '../../components/AdminLayout.jsx';
 import {
   getProducts,
   createProduct,
@@ -208,6 +209,21 @@ export default function ProductsAdmin() {
   const outOfStock = (product) => product.stock <= 0;
   const lowStock = (product) => product.stock > 0 && product.stock <= LOW_STOCK_THRESHOLD;
 
+  // Recherche du bandeau admin : filtre client-side nom + catégorie
+  const { search } = useAdminSearch();
+  const query = search.trim().toLowerCase();
+  const visibleProducts = useMemo(
+    () =>
+      query
+        ? products.filter(
+            (p) =>
+              p.name.toLowerCase().includes(query) ||
+              p.category.toLowerCase().includes(query)
+          )
+        : products,
+    [products, query]
+  );
+
   return (
     <div className="admin">
       <header className="admin__header">
@@ -218,87 +234,105 @@ export default function ProductsAdmin() {
       </header>
 
       {error && <p className="auth__error">{error}</p>}
-      {loading && <TableSkeleton />}
-
-      {!loading && products.length === 0 && (
-        <p className="home__message">Aucun produit. Créez en un avec « + Ajouter un produit ».</p>
+      {loading && (
+        <section className="admin__panel">
+          <div className="admin__table-wrap">
+            <TableSkeleton />
+          </div>
+        </section>
       )}
 
-      {!loading && products.length > 0 && (
-        <table className="admin__table">
-          <thead>
-            <tr>
-              <th>Image</th>
-              <th>Nom</th>
-              <th>Catégorie</th>
-              <th>Prix</th>
-              <th>Stock</th>
-              <th>Note</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((product) => (
-              <tr key={product.id}>
-                <td>
-                  {product.images?.[0] ? (
-                    <img className="admin__thumb" src={product.images[0]} alt={product.name} />
-                  ) : (
-                    <div className="admin__thumb admin__thumb--empty" />
-                  )}
-                </td>
-                <td>
-                  <span className="admin__product-name">{product.name}</span>
-                </td>
-                <td>{product.category}</td>
-                <td>{Number(product.price).toFixed(2)} €</td>
-                <td>
-                  <span
-                    className={`admin__stock ${
-                      outOfStock(product)
-                        ? 'admin__stock--out'
-                        : lowStock(product)
-                          ? 'admin__stock--low'
-                          : 'admin__stock--ok'
-                    }`}
-                  >
-                    {outOfStock(product) ? 'Rupture' : product.stock}
-                  </span>
-                </td>
-                <td>
-                  <div className="admin__note">
-                    <RatingStars value={product.avgRating ?? 0} size="sm" />
-                    <span className="admin__note-text">
-                      {product.reviewCount ? `${product.avgRating?.toFixed(1)} · ${product.reviewCount} avis` : '—'}
-                    </span>
-                  </div>
-                </td>
-                <td>
-                  <div className="admin__row-actions">
-                    <button
-                      type="button"
-                      className="admin__icon-btn"
-                      onClick={() => startEdit(product)}
-                      title="Modifier"
-                      aria-label={`Modifier ${product.name}`}
-                    >
-                      <IconPencil />
-                    </button>
-                    <button
-                      type="button"
-                      className="admin__icon-btn admin__icon-btn--danger"
-                      onClick={() => setConfirm(product)}
-                      title="Supprimer"
-                      aria-label={`Supprimer ${product.name}`}
-                    >
-                      <IconTrash />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {!loading && products.length === 0 && (
+        <div className="admin__panel">
+          <p className="home__message">Aucun produit. Créez en un avec « + Ajouter un produit ».</p>
+        </div>
+      )}
+
+      {!loading && products.length > 0 && visibleProducts.length === 0 && (
+        <div className="admin__panel">
+          <p className="home__message">Aucun produit ne correspond à « {search.trim()} ».</p>
+        </div>
+      )}
+
+      {!loading && products.length > 0 && visibleProducts.length > 0 && (
+        <section className="admin__panel">
+          <div className="admin__table-wrap">
+            <table className="admin__table">
+              <thead>
+                <tr>
+                  <th>Image</th>
+                  <th>Nom</th>
+                  <th>Catégorie</th>
+                  <th>Prix</th>
+                  <th>Stock</th>
+                  <th>Note</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleProducts.map((product) => (
+                  <tr key={product.id}>
+                    <td>
+                      {product.images?.[0] ? (
+                        <img className="admin__thumb" src={product.images[0]} alt={product.name} />
+                      ) : (
+                        <div className="admin__thumb admin__thumb--empty" />
+                      )}
+                    </td>
+                    <td>
+                      <span className="admin__product-name">{product.name}</span>
+                    </td>
+                    <td>{product.category}</td>
+                    <td>{Number(product.price).toFixed(2)} €</td>
+                    <td>
+                      <span
+                        className={`admin__stock ${
+                          outOfStock(product)
+                            ? 'admin__stock--out'
+                            : lowStock(product)
+                              ? 'admin__stock--low'
+                              : 'admin__stock--ok'
+                        }`}
+                      >
+                        {outOfStock(product) ? 'Rupture' : product.stock}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="admin__note">
+                        <RatingStars value={product.avgRating ?? 0} size="sm" />
+                        <span className="admin__note-text">
+                          {product.reviewCount ? `${product.avgRating?.toFixed(1)} · ${product.reviewCount} avis` : '—'}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="admin__row-actions">
+                        <button
+                          type="button"
+                          className="admin__icon-btn"
+                          onClick={() => startEdit(product)}
+                          title="Modifier"
+                          aria-label={`Modifier ${product.name}`}
+                        >
+                          <IconPencil />
+                        </button>
+                        <button
+                          type="button"
+                          className="admin__icon-btn admin__icon-btn--danger"
+                          onClick={() => setConfirm(product)}
+                          title="Supprimer"
+                          aria-label={`Supprimer ${product.name}`}
+                        >
+                          <IconTrash />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
 
       {/* ---------- Modal création / édition ---------- */}
