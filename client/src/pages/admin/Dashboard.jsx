@@ -1,17 +1,25 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore.js';
-import { getStats, getAllOrders } from '../../api/client.js';
+import { getStats, getAllOrders, getProducts } from '../../api/client.js';
 import RatingStars from '../../components/RatingStars.jsx';
 
-// Périodes utilisées pour les variations : 30 derniers jours vs 30 précédents
-const DELTA_WINDOW = 30 * 24 * 60 * 60 * 1000;
+// Seuil "stock faible" pour les alertes du dashboard
+const LOW_STOCK_LIMIT = 5;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 const STATUS_LABELS = {
   PENDING: 'En attente',
   SHIPPED: 'Expédiée',
   DELIVERED: 'Livrée',
   CANCELLED: 'Annulée',
 };
+
+const PERIODS = [
+  { value: '7', label: '7 jours' },
+  { value: '30', label: '30 jours' },
+  { value: '90', label: '90 jours' },
+];
 
 // Icône SVG associée à chaque carte de statistique
 function CardIcon({ type }) {
@@ -45,9 +53,10 @@ function CardIcon({ type }) {
   );
 }
 
-// Calcule les variations (%) entre les 30 derniers jours et les 30 précédents.
-// Renvoie null quand aucune donnée précédente (pas de badge affiché).
-function computeDeltas(orders) {
+// Calcule les variations (%) entre la période choisie et la période précédente
+// de même longueur. Renvoie null quand aucune donnée précédente.
+function computeDeltas(orders, days) {
+  const window = days * DAY_MS;
   const now = Date.now();
   let curRevenue = 0;
   let prevRevenue = 0;
@@ -55,13 +64,13 @@ function computeDeltas(orders) {
   let prevCount = 0;
 
   for (const order of orders) {
-    if (order.status === 'CANCELLED') continue; // cohérent avec les revenus serveur
+    if (order.status === 'CANCELLED') continue;
     const age = now - new Date(order.createdAt).getTime();
-    if (age <= DELTA_WINDOW) {
-      curRevenue += order.total;
+    if (age <= window) {
+      curRevenue += Number(order.total);
       curCount += 1;
-    } else if (age <= 2 * DELTA_WINDOW) {
-      prevRevenue += order.total;
+    } else if (age <= 2 * window) {
+      prevRevenue += Number(order.total);
       prevCount += 1;
     }
   }
@@ -70,6 +79,123 @@ function computeDeltas(orders) {
     prev > 0 ? Math.round(((cur - prev) / prev) * 100) : cur > 0 ? null : 0;
 
   return { revenueDelta: pct(curRevenue, prevRevenue), ordersDelta: pct(curCount, prevCount) };
+}
+
+// Construit la série de revenus par jour sur la période demandée
+function buildRevenueSeries(orders, days) {
+  const today = new Date();
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (days - 1));
+  const keyOf = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+  const totals = new Map();
+  for (const order of orders) {
+    if (order.status === 'CANCELLED') continue;
+    const k = keyOf(new Date(order.createdAt));
+    totals.set(k, (totals.get(k) || 0) + Number(order.total));
+  }
+
+  const series = [];
+  for (let i = 0; i < days; i++) {
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+    series.push({
+      label: d.getDate(),
+      shortMonth: d.toLocaleDateString('fr-FR', { month: 'short' }),
+      total: totals.get(keyOf(d)) ?? 0,
+    });
+  }
+  return series;
+}
+
+// Courbe de chiffre d'affaires en SVG pur (aucune dépendance externe)
+function RevenueChart({ series }) {
+  const W = 640;
+  const H = 190;
+  const PAD = 14;
+  const AXIS = 26;
+  const innerW = W - 2 * PAD;
+  const innerH = H - PAD - AXIS;
+  const max = Math.max(...series.map((s) => s.total));
+
+  if (!max) {
+    return (
+      <div className="chart__empty">
+        Aucune vente sur cette période. Les revenus apparaîtront ici dès la première commande.
+      </div>
+    );
+  }
+
+  const n = series.length;
+  const X = (i) => (n <= 1 ? PAD + innerW / 2 : PAD + (i * innerW) / (n - 1));
+  const Y = (v) => PAD + innerH - (v / max) * innerH;
+  const baseline = PAD + innerH;
+
+  const linePoints = series.map((s, i) => `${X(i)},${Y(s.total)}`).join(' ');
+  const areaPoints = `${X(0)},${baseline} ${linePoints} ${X(n - 1)},${baseline}`;
+
+  const xStep = Math.max(1, Math.ceil(n / 8));
+  // Une étiquette sur 2 environ sur mobile
+  const showLabel = (i) => n <= 12 || i % 2 === 0;
+
+  return (
+    <svg
+      className="chart"
+      viewBox={`0 0 ${W} ${H}`}
+      role="img"
+      aria-label="Courbe du chiffre d'affaires quotidien"
+    >
+      <defs>
+        <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--gold)" stopOpacity="0.28" />
+          <stop offset="100%" stopColor="var(--gold)" stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+
+      {/* Quadrillage horizontal */}
+      {[0.25, 0.5, 0.75, 1].map((f) => (
+        <line
+          key={f}
+          x1={PAD}
+          x2={W - PAD}
+          y1={Y(max * f)}
+          y2={Y(max * f)}
+          className="chart__grid"
+        />
+      ))}
+
+      {/* Volume sous la courbe */}
+      <polygon points={areaPoints} fill="url(#chartFill)" />
+
+      {/* Courbe */}
+      <polyline
+        points={linePoints}
+        fill="none"
+        className="chart__line"
+        vectorEffect="non-scaling-stroke"
+      />
+
+      {/* Points */}
+      {series.map((s, i) => (
+        <circle key={i} cx={X(i)} cy={Y(s.total)} r="3.5" className="chart__dot">
+          <title>{`${s.label} ${s.shortMonth} — ${s.total.toLocaleString('fr-FR')} €`}</title>
+        </circle>
+      ))}
+
+      {/* Étiquettes de l'axe X */}
+      {series.map((s, i) =>
+        i % xStep === 0 && showLabel(i) ? (
+          <text key={`x${i}`} x={X(i)} y={H - 8} className="chart__xlabel" textAnchor="middle">
+            {n <= 31 ? s.label : `${s.label} ${s.shortMonth}`}
+          </text>
+        ) : null
+      )}
+
+      {/* Valeur max sur l'axe Y */}
+      <text x={W - PAD} y={Y(max) - 6} className="chart__ylabel" textAnchor="end">
+        {max.toLocaleString('fr-FR')} €
+      </text>
+    </svg>
+  );
 }
 
 function formatEuro(value) {
@@ -92,19 +218,23 @@ function DashboardSkeleton() {
           </div>
         ))}
       </section>
-      <section className="admin__grid2">
-        <div className="admin__panel">
-          <div className="skeleton__block" style={{ width: 180, height: 22 }} />
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div className="skeleton__block" key={i} style={{ width: '100%', height: 40, marginTop: 14 }} />
-          ))}
-        </div>
+      <section className="admin__dash-split">
         <div className="admin__panel">
           <div className="skeleton__block" style={{ width: 190, height: 22 }} />
+          <div className="skeleton__block" style={{ width: '100%', height: 170, marginTop: 18 }} />
+        </div>
+        <div className="admin__panel">
+          <div className="skeleton__block" style={{ width: 180, height: 22 }} />
           {Array.from({ length: 4 }).map((_, i) => (
             <div className="skeleton__block" key={i} style={{ width: '100%', height: 44, marginTop: 14 }} />
           ))}
         </div>
+      </section>
+      <section className="admin__panel">
+        <div className="skeleton__block" style={{ width: 190, height: 22 }} />
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div className="skeleton__block" key={i} style={{ width: '100%', height: 40, marginTop: 14 }} />
+        ))}
       </section>
     </>
   );
@@ -114,18 +244,40 @@ export default function Dashboard() {
   const token = useAuthStore((state) => state.token);
   const [stats, setStats] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [period, setPeriod] = useState('30');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([getStats(token), getAllOrders(token)])
-      .then(([statsData, ordersData]) => {
+    Promise.all([getStats(token), getAllOrders(token), getProducts({})])
+      .then(([statsData, ordersData, productsData]) => {
         setStats(statsData);
         setOrders(ordersData);
+        setProducts(productsData);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [token]);
+
+  const days = Number(period) || 30;
+  const deltas = useMemo(() => computeDeltas(orders, days), [orders, days]);
+  const revenueSeries = useMemo(() => buildRevenueSeries(orders, days), [orders, days]);
+
+  const lastOrders = orders.slice(0, 5);
+  const lowStock = products
+    .filter((p) => p.stock <= LOW_STOCK_LIMIT)
+    .sort((a, b) => a.stock - b.stock)
+    .slice(0, 6);
+  const topSoldMax = stats?.topProducts?.length
+    ? Math.max(...stats.topProducts.map((p) => p.quantitySold))
+    : 1;
+
+  const periodRevenue = revenueSeries.reduce((s, d) => s + d.total, 0);
+  const periodOrders = orders.filter((o) => {
+    if (o.status === 'CANCELLED') return false;
+    return Date.now() - new Date(o.createdAt).getTime() <= days * DAY_MS;
+  }).length;
 
   if (loading) {
     return (
@@ -138,9 +290,6 @@ export default function Dashboard() {
     );
   }
 
-  const deltas = computeDeltas(orders);
-  const lastOrders = orders.slice(0, 5);
-
   const cards = stats
     ? [
         {
@@ -149,7 +298,7 @@ export default function Dashboard() {
           label: 'Revenus totaux',
           value: `${formatEuro(stats.totalRevenue)} €`,
           delta: deltas.revenueDelta,
-          sub: 'vs 30 derniers jours',
+          sub: `vs ${days} derniers jours`,
         },
         {
           key: 'commandes',
@@ -157,7 +306,7 @@ export default function Dashboard() {
           label: 'Commandes',
           value: String(stats.ordersCount),
           delta: deltas.ordersDelta,
-          sub: 'vs 30 derniers jours',
+          sub: `vs ${days} derniers jours`,
         },
         {
           key: 'stock',
@@ -180,11 +329,29 @@ export default function Dashboard() {
   return (
     <div className="admin">
       <header className="admin__header">
-        <h1 className="admin__title">Vue d'ensemble</h1>
+        <div>
+          <h1 className="admin__title">Vue d'ensemble</h1>
+          <p className="admin__subtitle admin__subtitle--small">Suivi de l'activité de la boutique</p>
+        </div>
+        <label className="admin__filter-wrap">
+          <span className="admin__filter-label">Période</span>
+          <select
+            className="admin__filter"
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+          >
+            {PERIODS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </header>
 
       {error && <p className="auth__error">{error}</p>}
 
+      {/* ---------- Cartes KPI ---------- */}
       <section className="admin__cards">
         {cards.map((card) => (
           <div className="admin__card" key={card.key}>
@@ -194,8 +361,8 @@ export default function Dashboard() {
               </span>
               {card.delta !== null && card.delta !== undefined && (
                 <span
-                  className={`admin__delta ${card.delta >= 0 ? 'is-up' : 'is-down'}`}
-                  title={card.delta >= 0 ? 'Hausse sur 30 jours' : 'Baisse sur 30 jours'}
+                  className={`admin__card-delta ${card.delta >= 0 ? 'admin__card-delta--up' : 'admin__card-delta--down'}`}
+                  title={card.delta >= 0 ? 'Hausse' : 'Baisse'}
                 >
                   {card.delta >= 0 ? '▲' : '▼'} {Math.abs(card.delta)} %
                 </span>
@@ -213,16 +380,75 @@ export default function Dashboard() {
         ))}
       </section>
 
-      <section className="admin__grid2">
-        {/* ---------- Dernières commandes ---------- */}
+      {/* ---------- Chiffre d'affaires + meilleures ventes ---------- */}
+      <section className="admin__dash-split">
         <div className="admin__panel">
-          <h2 className="admin__subtitle">Dernières commandes</h2>
+          <div className="admin__panel-head">
+            <div>
+              <h2 className="admin__panel-title admin__panel-title--inline">
+                Chiffre d'affaires
+              </h2>
+              <p className="admin__panel-sub">
+                {periodOrders} commande{periodOrders > 1 ? 's' : ''} ·{' '}
+                <strong>{formatEuro(periodRevenue)} €</strong> sur {days} jours
+              </p>
+            </div>
+            <span className="panel__total">{formatEuro(periodRevenue)} €</span>
+          </div>
+          <div className="chart__wrap">
+            <RevenueChart series={revenueSeries} />
+          </div>
+        </div>
 
-          {lastOrders.length === 0 && (
-            <p className="home__message">Aucune commande pour le moment.</p>
+        <div className="admin__panel">
+          <h2 className="admin__panel-title">Meilleures ventes</h2>
+          {stats.topProducts.length === 0 && (
+            <p className="home__message">Aucune vente pour le moment.</p>
           )}
+          {stats.topProducts.length > 0 && (
+            <ul className="admin__rated">
+              {stats.topProducts.map((product) => (
+                <li className="admin__rated-item" key={product.productId}>
+                  {product.image ? (
+                    <img className="admin__thumb" src={product.image} alt={product.name} />
+                  ) : (
+                    <div className="admin__thumb admin__thumb--empty" />
+                  )}
+                  <div className="admin__rated-info">
+                    <Link to={`/products/${product.productId}`}>{product.name}</Link>
+                    <div className="admin__rated-bar">
+                      <span
+                        style={{
+                          width: `${Math.round((product.quantitySold / topSoldMax) * 100)}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <span className="admin__rated-sales">
+                    {product.quantitySold} vendu{product.quantitySold > 1 ? 's' : ''}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
 
-          {lastOrders.length > 0 && (
+      {/* ---------- Dernières commandes ---------- */}
+      <section className="admin__panel">
+        <div className="admin__panel-head">
+          <h2 className="admin__panel-title admin__panel-title--inline">Dernières commandes</h2>
+          <Link to="/admin/orders" className="admin__link">
+            Voir toutes →
+          </Link>
+        </div>
+
+        {lastOrders.length === 0 && (
+          <p className="home__message">Aucune commande pour le moment.</p>
+        )}
+
+        {lastOrders.length > 0 && (
+          <div className="admin__table-wrap">
             <table className="admin__table">
               <thead>
                 <tr>
@@ -251,17 +477,17 @@ export default function Dashboard() {
                 ))}
               </tbody>
             </table>
-          )}
-        </div>
+          </div>
+        )}
+      </section>
 
-        {/* ---------- Produits les mieux notés ---------- */}
+      {/* ---------- Mieux notés + alertes stock ---------- */}
+      <section className="admin__grid2">
         <div className="admin__panel">
-          <h2 className="admin__subtitle">Produits les mieux notés</h2>
-
+          <h2 className="admin__panel-title">Produits les mieux notés</h2>
           {stats.topRated.length === 0 && (
             <p className="home__message">Aucun avis pour le moment.</p>
           )}
-
           {stats.topRated.length > 0 && (
             <ul className="admin__rated">
               {stats.topRated.map((product) => (
@@ -280,11 +506,39 @@ export default function Dashboard() {
                       </span>
                     </div>
                   </div>
-                  <span className="admin__rated-sales">
-                    {product.quantitySold} vendu{product.quantitySold > 1 ? 's' : ''}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="admin__panel">
+          <div className="admin__panel-head">
+            <h2 className="admin__panel-title admin__panel-title--inline">Alertes stock</h2>
+            {lowStock.length > 0 && (
+              <span className="admin__alert-count">{lowStock.length}</span>
+            )}
+          </div>
+          {lowStock.length === 0 && (
+            <p className="home__message">Aucun produit en stock faible.</p>
+          )}
+          {lowStock.length > 0 && (
+            <ul className="admin__alerts">
+              {lowStock.map((product) => (
+                <li className="admin__alert-item" key={product.id}>
+                  <span className="admin__alert-name">{product.name}</span>
+                  <span
+                    className={`admin__stock ${product.stock === 0 ? 'admin__stock--out' : 'admin__stock--low'}`}
+                  >
+                    {product.stock === 0 ? 'Rupture' : `${product.stock} restant${product.stock > 1 ? 's' : ''}`}
                   </span>
                 </li>
               ))}
+              <li className="admin__alert-item">
+                <Link to="/admin/products" className="admin__link">
+                  Gérer le stock →
+                </Link>
+              </li>
             </ul>
           )}
         </div>
