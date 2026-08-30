@@ -2,9 +2,11 @@
 node_modules/
 
 # Environnement (ne jamais committer les secrets)
+# On ignore TOUTES les variantes de .env (server/.env, client/.env, .env.local...)
+# sauf .env.example (le modèle à copier par les développeurs).
 .env
-.env.local
-.env.production
+.env.*
+!.env.example
 
 # Builds
 dist/

@@ -3,13 +3,19 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Requête générique vers l'API avec gestion des erreurs
 async function request(path, options = {}) {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
-  });
+  let res;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options.headers || {}),
+      },
+    });
+  } catch {
+    // Erreur réseau : serveur down, CORS, hors-ligne...
+    throw new Error("Impossible de contacter le serveur. Vérifiez que l'API est démarrée.");
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -70,11 +76,16 @@ export async function uploadImage(token, file) {
   const formData = new FormData();
   formData.append('image', file);
 
-  const res = await fetch(`${API_URL}/upload/image`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-    body: formData,
-  });
+  let res;
+  try {
+    res = await fetch(`${API_URL}/upload/image`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+  } catch {
+    throw new Error("Impossible de contacter le serveur. Vérifiez que l'API est démarrée.");
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

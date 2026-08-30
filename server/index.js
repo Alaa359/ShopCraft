@@ -105,8 +105,25 @@ app.use((req, res) => {
 
 // Gestion centralisée des erreurs
 app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).json({ error: err.message || 'Erreur serveur' });
+  // Corps JSON malformé (body-parser) -> 400
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'Corps de requête JSON invalide' });
+  }
+
+  // Certaines erreurs portent déjà un code HTTP explicite (body-parser, multer...)
+  const status = err.statusCode || err.status || 500;
+
+  // En 500, on logge la cause ; le message détaillé n'est renvoyé qu'en dev
+  if (status >= 500) {
+    console.error(err);
+    const message =
+      process.env.NODE_ENV === 'production'
+        ? 'Erreur serveur interne'
+        : err.message || 'Erreur serveur interne';
+    return res.status(500).json({ error: message });
+  }
+
+  res.status(status).json({ error: err.message || 'Requête invalide' });
 });
 
 const PORT = process.env.PORT || 5000;
