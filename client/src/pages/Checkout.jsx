@@ -32,10 +32,17 @@ function StripeForm({ clientSecret, total, onSuccess, onError }) {
 
     if (paymentIntent.status === 'succeeded') {
       onSuccess(paymentIntent.id);
+      return;
+    }
+
+    // Paiement différé (ex. moyen de paiement en attente) : la commande
+    // sera créée automatiquement par le webhook Stripe côté serveur.
+    if (paymentIntent.status === 'processing' || paymentIntent.status === 'requires_capture') {
+      onError('Le paiement est en cours de traitement. La commande sera confirmée automatiquement.');
     } else {
       onError('Le paiement nécessite une étape supplémentaire. Réessayez.');
-      setProcessing(false);
     }
+    setProcessing(false);
   }
 
   return (
@@ -85,28 +92,44 @@ export default function Checkout() {
     );
   }
 
-  // Prépare le paiement une seule fois au montage
+  // Prépare le paiement une seule fois au montage.
+  // Gère aussi le retour de redirection 3DS : si le PaymentIntent a déjà
+  // été confirmé par Stripe, on crée la commande directement.
   useEffect(() => {
     let cancelled = false;
     setPhase('loading');
     setError(null);
 
-    createPaymentIntent(token, cartItems)
-      .then((data) => {
+    async function prepare() {
+      try {
+        const data = await createPaymentIntent(token, cartItems);
         if (cancelled) return;
         setMode(data.mode);
         setClientSecret(data.clientSecret);
-        if (data.mode === 'stripe' && data.publicKey) {
-          setStripePromise(loadStripe(data.publicKey));
+
+        if (data.mode === 'stripe' && data.publicKey && data.clientSecret) {
+          const stripeInstance = await loadStripe(data.publicKey);
+          if (cancelled) return;
+          setStripePromise(stripeInstance);
+
+          // Retour de redirection 3DS : vérifie si le paiement est déjà confirmé
+          const result = await stripeInstance.retrievePaymentIntent(data.clientSecret);
+          if (cancelled) return;
+          if (result.paymentIntent?.status === 'succeeded') {
+            await completeOrder(result.paymentIntent.id);
+            return;
+          }
         }
         setPhase('ready');
-      })
-      .catch((err) => {
+      } catch (err) {
         if (!cancelled) {
           setError(err.message);
           setPhase('ready');
         }
-      });
+      }
+    }
+
+    prepare();
 
     return () => {
       cancelled = true;
@@ -125,6 +148,7 @@ export default function Checkout() {
     } catch (err) {
       setError(err.message);
       setProcessing(false);
+      setPhase('ready');
     }
   }
 

@@ -36,7 +36,15 @@ router.post('/create-intent', auth, async (req, res, next) => {
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(cart.total * 100),
       currency: 'eur',
-      metadata: { userId: req.user.id },
+      // Le panier et l'utilisateur sont stockés en metadata afin que le
+      // webhook Stripe puisse recréer la commande si le paiement est
+      // confirmé de manière asynchrone (3DS, moyen de paiement différé...).
+      metadata: {
+        userId: req.user.id,
+        items: JSON.stringify(
+          cart.lines.map((line) => ({ productId: line.productId, quantity: line.quantity }))
+        ),
+      },
       automatic_payment_methods: { enabled: true },
     });
 

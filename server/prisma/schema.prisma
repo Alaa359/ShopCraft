@@ -56,11 +56,12 @@ model Product {
 
 // Commande passée par un utilisateur
 model Order {
-  id        String      @id @default(cuid())
-  userId    String
-  status    OrderStatus @default(PENDING)
-  total     Decimal     @db.Decimal(10, 2)
-  createdAt DateTime    @default(now())
+  id                    String      @id @default(cuid())
+  userId                String
+  status                OrderStatus @default(PENDING)
+  total                 Decimal     @db.Decimal(10, 2)
+  stripePaymentIntentId String?     @unique // identifiant Stripe du paiement (si payé via Stripe)
+  createdAt             DateTime    @default(now())
 
   user   User        @relation(fields: [userId], references: [id])
   items  OrderItem[]

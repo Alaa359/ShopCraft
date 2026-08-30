@@ -10,3 +10,7 @@ export const stripe = process.env.STRIPE_SECRET_KEY
   : null;
 
 export const stripeEnabled = Boolean(stripe);
+
+// Secret du webhook Stripe (récupéré via `stripe listen` en mode test).
+// Sert à vérifier la signature des événements reçus.
+export const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET || null;

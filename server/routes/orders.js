@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { auth } from '../middleware/auth.js';
 import { buildCart, CartError } from '../lib/cart.js';
+import { getOrderByPaymentIntent, createOrderFromCart } from '../lib/orderService.js';
 import { stripe, stripeEnabled } from '../lib/stripe.js';
 
 const router = Router();
@@ -14,6 +15,19 @@ const router = Router();
 router.post('/', auth, async (req, res, next) => {
   try {
     const { items, paymentIntentId } = req.body ?? {};
+
+    // Idempotence : si le webhook a déjà créé la commande pour ce paiement,
+    // on la renvoie telle quelle (sans re-décrémenter le stock).
+    if (paymentIntentId) {
+      const existing = await getOrderByPaymentIntent(paymentIntentId);
+      if (existing) {
+        const full = await prisma.order.findUnique({
+          where: { id: existing.id },
+          include: { items: true },
+        });
+        return res.status(201).json(full);
+      }
+    }
 
     // Reconstruit et valide le panier côté serveur
     let cart;
@@ -38,30 +52,11 @@ router.post('/', auth, async (req, res, next) => {
       }
     }
 
-    // Crée la commande + lignes, et décrémente le stock dans une transaction
-    const order = await prisma.$transaction(async (tx) => {
-      const created = await tx.order.create({
-        data: {
-          userId: req.user.id,
-          total: cart.total,
-          items: {
-            create: cart.lines.map((line) => ({
-              productId: line.productId,
-              quantity: line.quantity,
-              price: line.price,
-            })),
-          },
-        },
-        include: { items: true },
-      });
-
-      for (const line of cart.lines) {
-        await tx.product.update({
-          where: { id: line.productId },
-          data: { stock: { decrement: line.quantity } },
-        });
-      }
-      return created;
+    // Crée la commande (transaction + décrémentation du stock)
+    const order = await createOrderFromCart({
+      userId: req.user.id,
+      cart,
+      paymentIntentId,
     });
 
     res.status(201).json(order);
