@@ -2,7 +2,13 @@ import { useEffect, useState } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
-import { useCartStore, selectCartTotal, selectCartCount } from '../store/cartStore.js';
+import {
+  useCartStore,
+  selectCartSubtotal,
+  selectCartShipping,
+  selectCartTotal,
+  selectCartCount,
+} from '../store/cartStore.js';
 import { useAuthStore } from '../store/authStore.js';
 import { createPaymentIntent, createOrder } from '../api/client.js';
 
@@ -59,6 +65,8 @@ function StripeForm({ clientSecret, total, onSuccess, onError }) {
 export default function Checkout() {
   const token = useAuthStore((state) => state.token);
   const items = useCartStore((state) => state.items);
+  const subtotal = useCartStore(selectCartSubtotal);
+  const shipping = useCartStore(selectCartShipping);
   const total = useCartStore(selectCartTotal);
   const count = useCartStore(selectCartCount);
   const clear = useCartStore((state) => state.clear);
@@ -229,6 +237,14 @@ export default function Checkout() {
               <span>{(item.price * item.quantity).toFixed(2)} €</span>
             </div>
           ))}
+          <div className="checkout__line">
+            <span>Sous-total</span>
+            <span>{subtotal.toFixed(2)} €</span>
+          </div>
+          <div className="checkout__line">
+            <span>Livraison</span>
+            <span>{shipping === 0 ? 'Offerte' : `${shipping.toFixed(2)} €`}</span>
+          </div>
           <div className="checkout__line checkout__line--total">
             <strong>Total</strong>
             <strong>{total.toFixed(2)} €</strong>

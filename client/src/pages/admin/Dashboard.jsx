@@ -4,6 +4,39 @@ import { useAuthStore } from '../../store/authStore.js';
 import { getStats } from '../../api/client.js';
 
 // Page d'accueil du dashboard admin : indicateurs + produits les plus vendus
+// Icône SVG associée à chaque carte de statistique
+function CardIcon({ type }) {
+  if (type === 'revenus') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.6" />
+        <path d="M15 9c-.5-1.2-1.7-2-3-2s-2.6.8-2.6 2 1 1.8 2.6 2.3 2.6 1.1 2.6 2.3-1.7 2-2.6 2-2.5-.8-3-2M12 6v1.5M12 15v1.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (type === 'commandes') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 6h16M7 6V4.5A1.5 1.5 0 0 1 8.5 3h7A1.5 1.5 0 0 1 17 4.5V6M6 6l1 13a1.8 1.8 0 0 0 1.8 1.6h6.4A1.8 1.8 0 0 0 17 19l1-13" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (type === 'attente') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.6" />
+        <path d="M12 7v5l3.5 2" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="8" r="3.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M4.5 20c1.3-3.4 4.3-5 7.5-5s6.2 1.6 7.5 5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
 export default function Dashboard() {
   const token = useAuthStore((state) => state.token);
   const [stats, setStats] = useState(null);
@@ -18,15 +51,15 @@ export default function Dashboard() {
   }, [token]);
 
   if (loading) {
-    return <p className="home__message">Chargement des statistiques...</p>;
+    return <p className="admin__loading">Chargement des statistiques...</p>;
   }
 
   const cards = stats
     ? [
-        { label: 'Revenus totaux', value: `${Number(stats.totalRevenue).toFixed(2)} €` },
-        { label: 'Commandes', value: stats.ordersCount },
-        { label: 'En attente', value: stats.pendingOrders },
-        { label: 'Utilisateurs', value: stats.usersCount },
+        { key: 'revenus', label: 'Revenus totaux', value: `${Number(stats.totalRevenue).toFixed(2)} €` },
+        { key: 'commandes', label: 'Commandes', value: stats.ordersCount },
+        { key: 'attente', label: 'En attente', value: stats.pendingOrders },
+        { key: 'utilisateurs', label: 'Utilisateurs', value: stats.usersCount },
       ]
     : [];
 
@@ -34,21 +67,16 @@ export default function Dashboard() {
     <div className="admin">
       <header className="admin__header">
         <h1 className="admin__title">Dashboard</h1>
-        <div className="admin__actions">
-          <Link to="/admin/products" className="btn btn--primary">
-            Gérer les produits
-          </Link>
-          <Link to="/admin/orders" className="btn btn--primary">
-            Gérer les commandes
-          </Link>
-        </div>
       </header>
 
       {error && <p className="auth__error">{error}</p>}
 
       <section className="admin__cards">
         {cards.map((card) => (
-          <div className="admin__card" key={card.label}>
+          <div className="admin__card" key={card.key}>
+            <span className="admin__card-icon">
+              <CardIcon type={card.key} />
+            </span>
             <span className="admin__card-label">{card.label}</span>
             <span className="admin__card-value">{card.value}</span>
           </div>

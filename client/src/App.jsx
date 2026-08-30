@@ -1,5 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar.jsx';
+import Toast from './components/Toast.jsx';
+import AdminLayout from './components/AdminLayout.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import AdminRoute from './components/AdminRoute.jsx';
 import Home from './pages/Home.jsx';
@@ -18,6 +20,7 @@ export default function App() {
   return (
     <div className="app">
       <Navbar />
+      <Toast />
       <main className="container">
         <Routes>
           <Route path="/" element={<Home />} />
@@ -38,7 +41,9 @@ export default function App() {
             path="/admin"
             element={
               <AdminRoute>
-                <Dashboard />
+                <AdminLayout>
+                  <Dashboard />
+                </AdminLayout>
               </AdminRoute>
             }
           />
@@ -46,7 +51,9 @@ export default function App() {
             path="/admin/products"
             element={
               <AdminRoute>
-                <ProductsAdmin />
+                <AdminLayout>
+                  <ProductsAdmin />
+                </AdminLayout>
               </AdminRoute>
             }
           />
@@ -54,7 +61,9 @@ export default function App() {
             path="/admin/orders"
             element={
               <AdminRoute>
-                <OrdersAdmin />
+                <AdminLayout>
+                  <OrdersAdmin />
+                </AdminLayout>
               </AdminRoute>
             }
           />

@@ -1,5 +1,10 @@
 import { create } from 'zustand';
 
+// Frais de livraison : offerts dès un certain montant, sinon tarif fixe.
+// Ces constantes doivent rester alignées sur celles de server/lib/cart.js.
+export const SHIPPING_FEE = 4.9;
+export const FREE_SHIPPING_THRESHOLD = 100;
+
 // État du panier global (Zustand)
 // Chaque entrée : { id, name, price, image, stock, quantity }
 export const useCartStore = create((set, get) => ({
@@ -60,5 +65,15 @@ export const useCartStore = create((set, get) => ({
 export const selectCartCount = (state) =>
   state.items.reduce((total, item) => total + item.quantity, 0);
 
-export const selectCartTotal = (state) =>
+// Total des produits uniquement (hors livraison)
+export const selectCartSubtotal = (state) =>
   state.items.reduce((total, item) => total + item.price * item.quantity, 0);
+
+// Frais de livraison calculés de la même façon que côté serveur
+export const selectCartShipping = (state) => {
+  const subtotal = selectCartSubtotal(state);
+  return subtotal === 0 || subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
+};
+
+// Total général (produits + livraison) — aligné sur le total validé par l'API
+export const selectCartTotal = (state) => selectCartSubtotal(state) + selectCartShipping(state);

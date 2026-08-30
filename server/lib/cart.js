@@ -3,6 +3,15 @@ import { prisma } from './prisma.js';
 // Erreur métier du panier (convertie en HTTP 400 par les routes)
 export class CartError extends Error {}
 
+// Frais de livraison : offerts dès un certain montant, sinon tarif fixe.
+// Doit rester aligné sur client/src/store/cartStore.js.
+export const SHIPPING_FEE = 4.9;
+export const FREE_SHIPPING_THRESHOLD = 100;
+
+function shippingFor(subtotal) {
+  return subtotal >= FREE_SHIPPING_THRESHOLD || subtotal === 0 ? 0 : SHIPPING_FEE;
+}
+
 // Reconstruit le panier depuis la base de données.
 // Les prix sont TOUJOURS calculés côté serveur (jamais ceux du client).
 // items = [{ productId, quantity }]
@@ -30,7 +39,7 @@ export async function buildCart(items) {
   }
 
   const lines = [];
-  let total = 0;
+  let subtotal = 0;
 
   for (const product of products) {
     const quantity = quantities[product.id];
@@ -39,8 +48,15 @@ export async function buildCart(items) {
     }
     const price = Number(product.price);
     lines.push({ productId: product.id, quantity, price });
-    total += price * quantity;
+    subtotal += price * quantity;
   }
 
-  return { lines, total, productIds };
+  const shipping = shippingFor(subtotal);
+  return {
+    lines,
+    subtotal,
+    shipping,
+    total: subtotal + shipping, // total payé (produits + livraison)
+    productIds,
+  };
 }
