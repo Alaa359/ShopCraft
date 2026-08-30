@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore.js';
 import { getAllOrders, updateOrderStatus } from '../../api/client.js';
+import { useAdminSearch } from '../../components/AdminLayout.jsx';
 
 // Libellés français des statuts
 const STATUS_LABELS = {
@@ -87,9 +88,24 @@ export default function OrdersAdmin() {
 
   // Filtre par période appliqué côté client (après le filtre serveur par statut)
   const days = Number(dateFilter) || 0;
-  const visibleOrders = days
+  const dateFiltered = days
     ? orders.filter((o) => Date.now() - new Date(o.createdAt).getTime() <= days * 86400000)
     : orders;
+
+  // Recherche du bandeau admin : référence de commande ou email client
+  const { search } = useAdminSearch();
+  const query = search.trim().toLowerCase();
+  const visibleOrders = useMemo(
+    () =>
+      query
+        ? dateFiltered.filter(
+            (o) =>
+              o.id.toLowerCase().includes(query) ||
+              (o.user?.email ?? '').toLowerCase().includes(query)
+          )
+        : dateFiltered,
+    [dateFiltered, query]
+  );
 
   // Change le statut d'une commande puis met à jour la liste
   async function handleStatusChange(orderId, status) {
@@ -144,73 +160,91 @@ export default function OrdersAdmin() {
       </div>
 
       {error && <p className="auth__error">{error}</p>}
-      {loading && <TableSkeleton />}
+      {loading && (
+        <section className="admin__panel">
+          <div className="admin__table-wrap">
+            <TableSkeleton />
+          </div>
+        </section>
+      )}
 
       {!loading && visibleOrders.length === 0 && (
-        <p className="home__message">Aucune commande ne correspond à ce filtre.</p>
+        <div className="admin__panel">
+          <p className="home__message">
+            {orders.length === 0
+              ? 'Aucune commande pour le moment.'
+              : query
+                ? 'Aucune commande ne correspond à cette recherche.'
+                : 'Aucune commande ne correspond à ce filtre.'}
+          </p>
+        </div>
       )}
 
       {!loading && visibleOrders.length > 0 && (
-        <table className="admin__table">
-          <thead>
-            <tr>
-              <th>Commande</th>
-              <th>Client</th>
-              <th>Date</th>
-              <th>Articles</th>
-              <th>Total</th>
-              <th>Statut</th>
-              <th>Détails</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visibleOrders.map((order) => (
-              <tr key={order.id}>
-                <td className="admin__id">#{order.id.slice(-8).toUpperCase()}</td>
-                <td>{order.user?.email ?? '—'}</td>
-                <td>{new Date(order.createdAt).toLocaleDateString('fr-FR')}</td>
-                <td>
-                  <ul className="admin__items">
-                    {order.items.map((item) => (
-                      <li key={item.id}>
-                        <Link to={`/products/${item.product.id}`}>{item.product.name}</Link> ×{' '}
-                        {item.quantity}
-                      </li>
-                    ))}
-                  </ul>
-                </td>
-                <td>{Number(order.total).toFixed(2)} €</td>
-                <td>
-                  {/* Badge cliquable : le menu invite à changer de statut */}
-                  <select
-                    className={`admin__status admin__status--pill admin__status--${order.status.toLowerCase()}`}
-                    value={order.status}
-                    onChange={(e) => handleStatusChange(order.id, e.target.value)}
-                    disabled={updatingId === order.id}
-                    aria-label={`Statut : ${STATUS_LABELS[order.status]}`}
-                  >
-                    {STATUSES.map((status) => (
-                      <option key={status} value={status}>
-                        {STATUS_LABELS[status]}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td>
-                  <button
-                    type="button"
-                    className="admin__icon-btn"
-                    onClick={() => setDetail(order)}
-                    title="Voir le détail"
-                    aria-label={`Voir le détail de la commande #${order.id.slice(-8).toUpperCase()}`}
-                  >
-                    <IconEye />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <section className="admin__panel">
+          <div className="admin__table-wrap">
+            <table className="admin__table">
+              <thead>
+                <tr>
+                  <th>Commande</th>
+                  <th>Client</th>
+                  <th>Date</th>
+                  <th>Articles</th>
+                  <th>Total</th>
+                  <th>Statut</th>
+                  <th>Détails</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleOrders.map((order) => (
+                  <tr key={order.id}>
+                    <td className="admin__id">#{order.id.slice(-8).toUpperCase()}</td>
+                    <td>{order.user?.email ?? '—'}</td>
+                    <td>{new Date(order.createdAt).toLocaleDateString('fr-FR')}</td>
+                    <td>
+                      <ul className="admin__items">
+                        {order.items.map((item) => (
+                          <li key={item.id}>
+                            <Link to={`/products/${item.product.id}`}>{item.product.name}</Link> ×{' '}
+                            {item.quantity}
+                          </li>
+                        ))}
+                      </ul>
+                    </td>
+                    <td>{Number(order.total).toFixed(2)} €</td>
+                    <td>
+                      {/* Badge cliquable : le menu invite à changer de statut */}
+                      <select
+                        className={`admin__status admin__status--pill admin__status--${order.status.toLowerCase()}`}
+                        value={order.status}
+                        onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                        disabled={updatingId === order.id}
+                        aria-label={`Statut : ${STATUS_LABELS[order.status]}`}
+                      >
+                        {STATUSES.map((status) => (
+                          <option key={status} value={status}>
+                            {STATUS_LABELS[status]}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="admin__icon-btn"
+                        onClick={() => setDetail(order)}
+                        title="Voir le détail"
+                        aria-label={`Voir le détail de la commande #${order.id.slice(-8).toUpperCase()}`}
+                      >
+                        <IconEye />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
 
       {/* ---------- Modal détail commande ---------- */}
