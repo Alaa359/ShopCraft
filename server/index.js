@@ -7,6 +7,7 @@ import ordersRouter from './routes/orders.js';
 import paymentsRouter from './routes/payments.js';
 import uploadsRouter from './routes/uploads.js';
 import statsRouter from './routes/stats.js';
+import reviewsRouter from './routes/reviews.js';
 import { stripe, stripeEnabled, stripeWebhookSecret } from './lib/stripe.js';
 import { buildCart, CartError } from './lib/cart.js';
 import { createOrderFromCart, getOrderByPaymentIntent } from './lib/orderService.js';
@@ -94,6 +95,7 @@ app.use('/api/products', productsRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/payments', paymentsRouter);
 app.use('/api/admin/stats', statsRouter);
+app.use('/api/reviews', reviewsRouter);
 app.use('/api/upload', uploadsRouter);
 
 // 404 pour toute route inconnue

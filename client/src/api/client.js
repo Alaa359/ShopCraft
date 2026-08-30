@@ -135,6 +135,34 @@ export function getMyOrders(token) {
   });
 }
 
+// ---------- Avis produits ----------
+
+// Ajoute un avis (note 1-5 + commentaire). data : { productId, rating, comment }
+export function addReview(token, data) {
+  return request('/reviews', {
+    method: 'POST',
+    body: JSON.stringify(data),
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+// Modifie son propre avis. data : { rating?, comment? }
+export function updateReview(token, id, data) {
+  return request(`/reviews/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+// Supprime son propre avis
+export function deleteReview(token, id) {
+  return request(`/reviews/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
 // ---------- Administration ----------
 
 // Liste toutes les commandes (admin), filtre optionnel ?status=
