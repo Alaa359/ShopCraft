@@ -27,7 +27,7 @@ router.get('/', auth, isAdmin, async (req, res, next) => {
       include: {
         user: { select: { id: true, email: true } },
         items: {
-          include: { product: { select: { id: true, name: true, images: true } } },
+          include: { product: { select: { id: true, name: true, category: true, images: true } } },
         },
       },
       orderBy: { createdAt: 'desc' },

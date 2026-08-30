@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore.js';
 import { getStats, getAllOrders, getProducts } from '../../api/client.js';
-import RatingStars from '../../components/RatingStars.jsx';
 
 // Seuil "stock faible" pour les alertes du dashboard
 const LOW_STOCK_LIMIT = 5;
@@ -53,8 +52,7 @@ function CardIcon({ type }) {
   );
 }
 
-// Calcule les variations (%) entre la période choisie et la période précédente
-// de même longueur. Renvoie null quand aucune donnée précédente.
+// Calcule les variations (%) entre la période choisie et la précédente
 function computeDeltas(orders, days) {
   const window = days * DAY_MS;
   const now = Date.now();
@@ -81,7 +79,7 @@ function computeDeltas(orders, days) {
   return { revenueDelta: pct(curRevenue, prevRevenue), ordersDelta: pct(curCount, prevCount) };
 }
 
-// Construit la série de revenus par jour sur la période demandée
+// Série de revenus par jour sur la période (jours sans vente = 0)
 function buildRevenueSeries(orders, days) {
   const today = new Date();
   const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (days - 1));
@@ -107,7 +105,31 @@ function buildRevenueSeries(orders, days) {
   return series;
 }
 
-// Courbe de chiffre d'affaires en SVG pur (aucune dépendance externe)
+// Répartition du chiffre d'affaires par catégorie (à partir des commandes,
+// catégorie retrouvée via le catalogue si absente du serveur)
+function buildCategoryRevenue(orders, productById) {
+  const map = new Map();
+  for (const order of orders) {
+    if (order.status === 'CANCELLED') continue;
+    for (const item of order.items ?? []) {
+      const cat =
+        item.product?.category || productById.get(item.productId)?.category || 'Autre';
+      map.set(cat, (map.get(cat) || 0) + item.quantity * Number(item.price));
+    }
+  }
+  return [...map.entries()].sort((a, b) => b[1] - a[1]);
+}
+
+// Stock total par catégorie (à partir du catalogue)
+function buildStockByCategory(products) {
+  const map = new Map();
+  for (const product of products) {
+    map.set(product.category, (map.get(product.category) || 0) + Number(product.stock));
+  }
+  return [...map.entries()].sort((a, b) => b[1] - a[1]);
+}
+
+// Courbe de chiffre d'affaires en SVG pur
 function RevenueChart({ series }) {
   const W = 640;
   const H = 190;
@@ -132,9 +154,7 @@ function RevenueChart({ series }) {
 
   const linePoints = series.map((s, i) => `${X(i)},${Y(s.total)}`).join(' ');
   const areaPoints = `${X(0)},${baseline} ${linePoints} ${X(n - 1)},${baseline}`;
-
   const xStep = Math.max(1, Math.ceil(n / 8));
-  // Une étiquette sur 2 environ sur mobile
   const showLabel = (i) => n <= 12 || i % 2 === 0;
 
   return (
@@ -151,7 +171,6 @@ function RevenueChart({ series }) {
         </linearGradient>
       </defs>
 
-      {/* Quadrillage horizontal */}
       {[0.25, 0.5, 0.75, 1].map((f) => (
         <line
           key={f}
@@ -163,25 +182,15 @@ function RevenueChart({ series }) {
         />
       ))}
 
-      {/* Volume sous la courbe */}
       <polygon points={areaPoints} fill="url(#chartFill)" />
+      <polyline points={linePoints} fill="none" className="chart__line" vectorEffect="non-scaling-stroke" />
 
-      {/* Courbe */}
-      <polyline
-        points={linePoints}
-        fill="none"
-        className="chart__line"
-        vectorEffect="non-scaling-stroke"
-      />
-
-      {/* Points */}
       {series.map((s, i) => (
         <circle key={i} cx={X(i)} cy={Y(s.total)} r="3.5" className="chart__dot">
           <title>{`${s.label} ${s.shortMonth} — ${s.total.toLocaleString('fr-FR')} €`}</title>
         </circle>
       ))}
 
-      {/* Étiquettes de l'axe X */}
       {series.map((s, i) =>
         i % xStep === 0 && showLabel(i) ? (
           <text key={`x${i}`} x={X(i)} y={H - 8} className="chart__xlabel" textAnchor="middle">
@@ -190,11 +199,38 @@ function RevenueChart({ series }) {
         ) : null
       )}
 
-      {/* Valeur max sur l'axe Y */}
       <text x={W - PAD} y={Y(max) - 6} className="chart__ylabel" textAnchor="end">
         {max.toLocaleString('fr-FR')} €
       </text>
     </svg>
+  );
+}
+
+// Donut de livraison (part des commandes livrées)
+function RetentionDonut({ ratio }) {
+  const R = 30;
+  const C = 2 * Math.PI * R;
+  const pct = Math.round(ratio * 100);
+  return (
+    <div className="dash-donut">
+      <svg viewBox="0 0 84 84" aria-hidden="true">
+        <circle cx="42" cy="42" r={R} fill="none" className="dash-donut__track" />
+        <circle
+          cx="42"
+          cy="42"
+          r={R}
+          fill="none"
+          className="dash-donut__value"
+          strokeDasharray={C}
+          strokeDashoffset={C * (1 - ratio)}
+          transform="rotate(-90 42 42)"
+        />
+      </svg>
+      <div className="dash-donut__center">
+        <strong>{pct}%</strong>
+        <span>livrées</span>
+      </div>
+    </div>
   );
 }
 
@@ -209,10 +245,11 @@ function formatEuro(value) {
 function DashboardSkeleton() {
   return (
     <>
+      <div className="skeleton__block skeleton__block--wide" />
       <section className="admin__cards">
         {Array.from({ length: 4 }).map((_, i) => (
           <div className="admin__card" key={i}>
-            <div className="skeleton__block" style={{ width: 36, height: 36, borderRadius: 10 }} />
+            <div className="skeleton__block" style={{ width: 36, height: 36, borderRadius: 12 }} />
             <div className="skeleton__block" style={{ width: '55%', height: 12, marginTop: 10 }} />
             <div className="skeleton__block" style={{ width: '80%', height: 28, marginTop: 6 }} />
           </div>
@@ -224,14 +261,14 @@ function DashboardSkeleton() {
           <div className="skeleton__block" style={{ width: '100%', height: 170, marginTop: 18 }} />
         </div>
         <div className="admin__panel">
-          <div className="skeleton__block" style={{ width: 180, height: 22 }} />
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div className="skeleton__block" key={i} style={{ width: '100%', height: 44, marginTop: 14 }} />
+          <div className="skeleton__block" style={{ width: 160, height: 22 }} />
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div className="skeleton__block" key={i} style={{ width: '100%', height: 40, marginTop: 14 }} />
           ))}
         </div>
       </section>
       <section className="admin__panel">
-        <div className="skeleton__block" style={{ width: 190, height: 22 }} />
+        <div className="skeleton__block" style={{ width: 200, height: 22 }} />
         {Array.from({ length: 3 }).map((_, i) => (
           <div className="skeleton__block" key={i} style={{ width: '100%', height: 40, marginTop: 14 }} />
         ))}
@@ -242,12 +279,14 @@ function DashboardSkeleton() {
 
 export default function Dashboard() {
   const token = useAuthStore((state) => state.token);
+  const user = useAuthStore((state) => state.user);
   const [stats, setStats] = useState(null);
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
   const [period, setPeriod] = useState('30');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [now, setNow] = useState(new Date());
 
   useEffect(() => {
     Promise.all([getStats(token), getAllOrders(token), getProducts({})])
@@ -260,9 +299,21 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, [token]);
 
+  // Horloge de la carte de bienvenue (mise à jour toutes les 30 s)
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(id);
+  }, []);
+
   const days = Number(period) || 30;
   const deltas = useMemo(() => computeDeltas(orders, days), [orders, days]);
   const revenueSeries = useMemo(() => buildRevenueSeries(orders, days), [orders, days]);
+  const productById = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
+  const categoryRevenue = useMemo(
+    () => buildCategoryRevenue(orders, productById),
+    [orders, productById]
+  );
+  const stockByCategory = useMemo(() => buildStockByCategory(products), [products]);
 
   const lastOrders = orders.slice(0, 5);
   const lowStock = products
@@ -272,6 +323,8 @@ export default function Dashboard() {
   const topSoldMax = stats?.topProducts?.length
     ? Math.max(...stats.topProducts.map((p) => p.quantitySold))
     : 1;
+  const categoryMax = Math.max(1, ...categoryRevenue.map(([, v]) => v));
+  const stockMax = Math.max(1, ...stockByCategory.map(([, v]) => v));
 
   const periodRevenue = revenueSeries.reduce((s, d) => s + d.total, 0);
   const periodOrders = orders.filter((o) => {
@@ -279,16 +332,30 @@ export default function Dashboard() {
     return Date.now() - new Date(o.createdAt).getTime() <= days * DAY_MS;
   }).length;
 
+  const activeOrders = orders.filter((o) => o.status !== 'CANCELLED');
+  const ratio =
+    orders.length > 0
+      ? activeOrders.length / orders.length
+      : 0;
+
+  // Produits les plus vendus : on complète avec le prix du catalogue
+  const topProductsEnriched = (stats?.topProducts ?? []).map((p) => {
+    const catalog = products.find((x) => x.id === p.productId);
+    return { ...p, price: catalog?.price };
+  });
+
   if (loading) {
     return (
       <div className="admin">
-        <header className="admin__header">
-          <h1 className="admin__title">Vue d'ensemble</h1>
-        </header>
         <DashboardSkeleton />
       </div>
     );
   }
+
+  const firstName =
+    user?.name ||
+    (user?.email ? user.email.charAt(0).toUpperCase() + user.email.slice(1, user.email.indexOf('@')) : 'Admin');
+  const avatarInitial = (user?.name || user?.email || 'A').charAt(0).toUpperCase();
 
   const cards = stats
     ? [
@@ -320,7 +387,6 @@ export default function Dashboard() {
           icon: 'note',
           label: 'Note moyenne',
           value: stats.avgRating ? stats.avgRating.toFixed(1) : '—',
-          stars: stats.avgRating,
           sub: `${stats.topRated.reduce((s, p) => s + p.reviewCount, 0)} avis clients`,
         },
       ]
@@ -328,30 +394,28 @@ export default function Dashboard() {
 
   return (
     <div className="admin">
-      <header className="admin__header">
-        <div>
-          <h1 className="admin__title">Vue d'ensemble</h1>
-          <p className="admin__subtitle admin__subtitle--small">Suivi de l'activité de la boutique</p>
-        </div>
-        <label className="admin__filter-wrap">
-          <span className="admin__filter-label">Période</span>
-          <select
-            className="admin__filter"
-            value={period}
-            onChange={(e) => setPeriod(e.target.value)}
-          >
-            {PERIODS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </header>
-
       {error && <p className="auth__error">{error}</p>}
 
-      {/* ---------- Cartes KPI ---------- */}
+      {/* ---------- Carte de bienvenue ---------- */}
+      <section className="dash-welcome">
+        <div className="dash-welcome__left">
+          <span className="dash-welcome__avatar">{avatarInitial}</span>
+          <div>
+            <p className="dash-welcome__hello">Bon retour, {firstName}</p>
+            <p className="dash-welcome__sub">Espace administrateur · ShopCraft</p>
+          </div>
+        </div>
+        <div className="dash-welcome__right">
+          <p className="dash-welcome__time">
+            {now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+          </p>
+          <p className="dash-welcome__date">
+            {now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </p>
+        </div>
+      </section>
+
+      {/* ---------- Cartes statistiques ---------- */}
       <section className="admin__cards">
         {cards.map((card) => (
           <div className="admin__card" key={card.key}>
@@ -370,30 +434,112 @@ export default function Dashboard() {
             </div>
             <span className="admin__card-label">{card.label}</span>
             <span className="admin__card-value">{card.value}</span>
-            {card.stars !== undefined && (
-              <span className="admin__card-stars">
-                <RatingStars value={card.stars} size="sm" />
-              </span>
-            )}
             {card.sub && <span className="admin__card-sub">{card.sub}</span>}
           </div>
         ))}
       </section>
 
-      {/* ---------- Chiffre d'affaires + meilleures ventes ---------- */}
+      {/* ---------- Meilleures ventes + aperçu clients ---------- */}
+      <section className="admin__dash-split">
+        <div className="admin__panel">
+          <div className="admin__panel-head">
+            <h2 className="admin__panel-title admin__panel-title--inline">Meilleures ventes</h2>
+            <Link to="/admin/products" className="admin__link">
+              Voir tout →
+            </Link>
+          </div>
+          {topProductsEnriched.length === 0 && (
+            <p className="home__message">Aucune vente pour le moment.</p>
+          )}
+          {topProductsEnriched.length > 0 && (
+            <ul className="dash-best">
+              {topProductsEnriched.map((product, index) => (
+                <li className="dash-best__item" key={product.productId}>
+                  <span className="dash-best__rank">{index + 1}</span>
+                  {product.image ? (
+                    <img className="dash-best__thumb" src={product.image} alt={product.name} />
+                  ) : (
+                    <div className="dash-best__thumb dash-best__thumb--empty" />
+                  )}
+                  <div className="dash-best__info">
+                    <Link to={`/products/${product.productId}`} className="dash-best__name">
+                      {product.name}
+                    </Link>
+                    <span className="dash-best__meta">
+                      {product.price ? `${formatEuro(product.price)} €` : '—'}
+                    </span>
+                  </div>
+                  <span className="dash-best__sales">
+                    {product.quantitySold} {product.quantitySold > 1 ? 'ventes' : 'vente'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="admin__panel">
+          <h2 className="admin__panel-title">Aperçu clients</h2>
+          <div className="dash-client">
+            <RetentionDonut ratio={ratio} />
+            <div className="dash-client__notes">
+              <p>
+                <strong>{stats.usersCount}</strong> client{stats.usersCount > 1 ? 's' : ''} inscrit
+                {stats.usersCount > 1 ? 's' : ''}
+              </p>
+              <p>
+                <strong>{Math.round(ratio * 100)} %</strong> de commandes non annulées
+              </p>
+            </div>
+          </div>
+          <h3 className="dash-sub">Chiffre d'affaires par catégorie</h3>
+          <ul className="dash-bars">
+            {categoryRevenue.length === 0 && (
+              <li className="home__message home__message--bare">Aucune donnée pour le moment.</li>
+            )}
+            {categoryRevenue.map(([category, value]) => (
+              <li className="dash-bar" key={category}>
+                <span className="dash-bar__label">{category}</span>
+                <div className="dash-bar__track">
+                  <span
+                    className="dash-bar__fill"
+                    style={{ width: `${Math.round((value / categoryMax) * 100)}%` }}
+                  />
+                </div>
+                <strong className="dash-bar__value">{formatEuro(value)} €</strong>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* ---------- Aperçu des commandes + stock ---------- */}
       <section className="admin__dash-split">
         <div className="admin__panel">
           <div className="admin__panel-head">
             <div>
               <h2 className="admin__panel-title admin__panel-title--inline">
-                Chiffre d'affaires
+                Aperçu des commandes
               </h2>
               <p className="admin__panel-sub">
                 {periodOrders} commande{periodOrders > 1 ? 's' : ''} ·{' '}
                 <strong>{formatEuro(periodRevenue)} €</strong> sur {days} jours
               </p>
             </div>
-            <span className="panel__total">{formatEuro(periodRevenue)} €</span>
+            <label className="admin__filter-wrap">
+              <span className="admin__filter-label">Période</span>
+              <select
+                className="admin__filter"
+                value={period}
+                onChange={(e) => setPeriod(e.target.value)}
+              >
+                {PERIODS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
           <div className="chart__wrap">
             <RevenueChart series={revenueSeries} />
@@ -401,43 +547,55 @@ export default function Dashboard() {
         </div>
 
         <div className="admin__panel">
-          <h2 className="admin__panel-title">Meilleures ventes</h2>
-          {stats.topProducts.length === 0 && (
-            <p className="home__message">Aucune vente pour le moment.</p>
-          )}
-          {stats.topProducts.length > 0 && (
-            <ul className="admin__rated">
-              {stats.topProducts.map((product) => (
-                <li className="admin__rated-item" key={product.productId}>
-                  {product.image ? (
-                    <img className="admin__thumb" src={product.image} alt={product.name} />
-                  ) : (
-                    <div className="admin__thumb admin__thumb--empty" />
-                  )}
-                  <div className="admin__rated-info">
-                    <Link to={`/products/${product.productId}`}>{product.name}</Link>
-                    <div className="admin__rated-bar">
-                      <span
-                        style={{
-                          width: `${Math.round((product.quantitySold / topSoldMax) * 100)}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <span className="admin__rated-sales">
-                    {product.quantitySold} vendu{product.quantitySold > 1 ? 's' : ''}
+          <div className="admin__panel-head">
+            <h2 className="admin__panel-title admin__panel-title--inline">Stock / Inventaire</h2>
+            {lowStock.length > 0 && <span className="admin__alert-count">{lowStock.length}</span>}
+          </div>
+          <div className="dash-stock">
+            <p className="dash-sub">Unités par catégorie</p>
+            <div className="dash-stockchart" role="img" aria-label="Répartition du stock par catégorie">
+              {stockByCategory.map(([category, value]) => (
+                <div className="dash-stockchart__col" key={category}>
+                  <span
+                    className="dash-stockchart__bar"
+                    style={{ height: `${Math.max(6, Math.round((value / stockMax) * 100))}%` }}
+                    title={`${category} — ${value} unités`}
+                  />
+                  <span className="dash-stockchart__label" title={category}>
+                    {category.slice(0, 6)}
                   </span>
-                </li>
+                </div>
               ))}
-            </ul>
-          )}
+            </div>
+
+            <h3 className="dash-sub">Alertes stock faible</h3>
+            {lowStock.length === 0 && (
+              <p className="home__message">Aucun produit en stock faible.</p>
+            )}
+            {lowStock.length > 0 && (
+              <ul className="admin__alerts">
+                {lowStock.map((product) => (
+                  <li className="admin__alert-item" key={product.id}>
+                    <span className="admin__alert-name">{product.name}</span>
+                    <span
+                      className={`admin__stock ${product.stock === 0 ? 'admin__stock--out' : 'admin__stock--low'}`}
+                    >
+                      {product.stock === 0
+                        ? 'Rupture'
+                        : `${product.stock} restant${product.stock > 1 ? 's' : ''}`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       </section>
 
-      {/* ---------- Dernières commandes ---------- */}
+      {/* ---------- Commandes récentes ---------- */}
       <section className="admin__panel">
         <div className="admin__panel-head">
-          <h2 className="admin__panel-title admin__panel-title--inline">Dernières commandes</h2>
+          <h2 className="admin__panel-title admin__panel-title--inline">Commandes récentes</h2>
           <Link to="/admin/orders" className="admin__link">
             Voir toutes →
           </Link>
@@ -479,69 +637,6 @@ export default function Dashboard() {
             </table>
           </div>
         )}
-      </section>
-
-      {/* ---------- Mieux notés + alertes stock ---------- */}
-      <section className="admin__grid2">
-        <div className="admin__panel">
-          <h2 className="admin__panel-title">Produits les mieux notés</h2>
-          {stats.topRated.length === 0 && (
-            <p className="home__message">Aucun avis pour le moment.</p>
-          )}
-          {stats.topRated.length > 0 && (
-            <ul className="admin__rated">
-              {stats.topRated.map((product) => (
-                <li className="admin__rated-item" key={product.productId}>
-                  {product.image ? (
-                    <img className="admin__thumb" src={product.image} alt={product.name} />
-                  ) : (
-                    <div className="admin__thumb admin__thumb--empty" />
-                  )}
-                  <div className="admin__rated-info">
-                    <Link to={`/products/${product.productId}`}>{product.name}</Link>
-                    <div className="admin__rated-meta">
-                      <RatingStars value={product.avgRating} size="sm" />
-                      <span>
-                        {product.avgRating.toFixed(1)} · {product.reviewCount} avis
-                      </span>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        <div className="admin__panel">
-          <div className="admin__panel-head">
-            <h2 className="admin__panel-title admin__panel-title--inline">Alertes stock</h2>
-            {lowStock.length > 0 && (
-              <span className="admin__alert-count">{lowStock.length}</span>
-            )}
-          </div>
-          {lowStock.length === 0 && (
-            <p className="home__message">Aucun produit en stock faible.</p>
-          )}
-          {lowStock.length > 0 && (
-            <ul className="admin__alerts">
-              {lowStock.map((product) => (
-                <li className="admin__alert-item" key={product.id}>
-                  <span className="admin__alert-name">{product.name}</span>
-                  <span
-                    className={`admin__stock ${product.stock === 0 ? 'admin__stock--out' : 'admin__stock--low'}`}
-                  >
-                    {product.stock === 0 ? 'Rupture' : `${product.stock} restant${product.stock > 1 ? 's' : ''}`}
-                  </span>
-                </li>
-              ))}
-              <li className="admin__alert-item">
-                <Link to="/admin/products" className="admin__link">
-                  Gérer le stock →
-                </Link>
-              </li>
-            </ul>
-          )}
-        </div>
       </section>
     </div>
   );
