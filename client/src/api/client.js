@@ -36,6 +36,53 @@ export function getProduct(id) {
   return request(`/products/${id}`);
 }
 
+// ---------- Produits (admin) ----------
+
+// Crée un produit (admin). data : { name, description, price, stock, category, images }
+export function createProduct(token, data) {
+  return request('/products', {
+    method: 'POST',
+    body: JSON.stringify(data),
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+// Met à jour un produit (admin)
+export function updateProduct(token, id, data) {
+  return request(`/products/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+// Supprime un produit (admin)
+export function deleteProduct(token, id) {
+  return request(`/products/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+// Upload d'une image (admin). Retourne { url }.
+// Envoi en multipart/form-data (le navigateur gère la limite du corps).
+export async function uploadImage(token, file) {
+  const formData = new FormData();
+  formData.append('image', file);
+
+  const res = await fetch(`${API_URL}/upload/image`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Erreur upload (${res.status})`);
+  }
+  return res.json();
+}
+
 // ---------- Authentification ----------
 
 // Enregistre un nouveau compte utilisateur
@@ -84,6 +131,32 @@ export function createOrder(token, items, paymentIntentId = null) {
 // Historique des commandes de l'utilisateur connecté
 export function getMyOrders(token) {
   return request('/orders/mine', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+// ---------- Administration ----------
+
+// Liste toutes les commandes (admin), filtre optionnel ?status=
+export function getAllOrders(token, status = '') {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+  return request(`/orders${qs}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+// Change le statut d'une commande (admin)
+export function updateOrderStatus(token, id, status) {
+  return request(`/orders/${id}/status`, {
+    method: 'PUT',
+    body: JSON.stringify({ status }),
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+// Statistiques du dashboard (admin)
+export function getStats(token) {
+  return request('/admin/stats', {
     headers: { Authorization: `Bearer ${token}` },
   });
 }

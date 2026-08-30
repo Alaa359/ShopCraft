@@ -5,9 +5,12 @@ import productsRouter from './routes/products.js';
 import authRouter from './routes/auth.js';
 import ordersRouter from './routes/orders.js';
 import paymentsRouter from './routes/payments.js';
+import uploadsRouter from './routes/uploads.js';
+import statsRouter from './routes/stats.js';
 import { stripe, stripeEnabled, stripeWebhookSecret } from './lib/stripe.js';
 import { buildCart, CartError } from './lib/cart.js';
 import { createOrderFromCart, getOrderByPaymentIntent } from './lib/orderService.js';
+import { UPLOADS_DIR } from './lib/upload.js';
 
 dotenv.config();
 
@@ -77,6 +80,9 @@ app.post(
 
 app.use(express.json());
 
+// Images uploadées (v1) : servies statiquement depuis /server/uploads
+app.use('/uploads', express.static(UPLOADS_DIR));
+
 // Route de vérification de l'API
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -87,6 +93,8 @@ app.use('/api/auth', authRouter);
 app.use('/api/products', productsRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/payments', paymentsRouter);
+app.use('/api/admin/stats', statsRouter);
+app.use('/api/upload', uploadsRouter);
 
 // 404 pour toute route inconnue
 app.use((req, res) => {

@@ -20,7 +20,10 @@ export default function Navbar() {
             {count > 0 && <span className="navbar__badge">{count}</span>}
           </Link>
           {user ? (
-            <Link to="/account">Mon compte</Link>
+            <>
+              {user.role === 'ADMIN' && <Link to="/admin">Dashboard</Link>}
+              <Link to="/account">Mon compte</Link>
+            </>
           ) : (
             <Link to="/login">Connexion</Link>
           )}

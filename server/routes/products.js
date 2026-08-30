@@ -131,6 +131,12 @@ router.delete('/:id', auth, isAdmin, async (req, res, next) => {
     await prisma.product.delete({ where: { id: req.params.id } });
     res.json({ message: 'Produit supprimé' });
   } catch (err) {
+    // P2003 = erreur de contrainte d'intégrité (produit référencé par des commandes)
+    if (err.code === 'P2003') {
+      return res.status(409).json({
+        error: 'Impossible de supprimer ce produit : il figure dans une ou plusieurs commandes.',
+      });
+    }
     next(err);
   }
 });
