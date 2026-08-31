@@ -29,11 +29,6 @@ const ICONS = {
       <circle cx="15.5" cy="20" r="0.5" fill="currentColor" />
     </svg>
   ),
-  bell: (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M6 17v-5a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  ),
   search: (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
@@ -123,16 +118,6 @@ export default function AdminLayout({ children }) {
               title="Messages"
             >
               {ICONS.envelope}
-            </button>
-
-            <button
-              type="button"
-              className="admin-topbar__icon"
-              aria-label="Notifications"
-              title="Notifications"
-            >
-              {ICONS.bell}
-              <span className="admin-topbar__dot" aria-hidden="true" />
             </button>
 
             <span className="admin-topbar__avatar" title={user?.email ?? 'Admin'}>

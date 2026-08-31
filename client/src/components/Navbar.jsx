@@ -36,6 +36,22 @@ function CartIcon() {
   );
 }
 
+// Icône notifications (SVG inline)
+function BellIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M6 17v-5a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 // Barre de navigation : logo, recherche centrée, compte + panier, menu mobile
 export default function Navbar() {
   const count = useCartStore(selectCartCount);
@@ -116,9 +132,20 @@ export default function Navbar() {
 
         <div className="navbar__actions">
           {user && (
-            <Link to="/account" className="navbar__action" aria-label="Mon compte" title="Mon compte">
-              <AccountIcon />
-            </Link>
+            <>
+              <button
+                type="button"
+                className="navbar__action"
+                aria-label="Notifications"
+                title="Notifications"
+              >
+                <BellIcon />
+                <span className="navbar__dot" aria-hidden="true" />
+              </button>
+              <Link to="/account" className="navbar__action" aria-label="Mon compte" title="Mon compte">
+                <AccountIcon />
+              </Link>
+            </>
           )}
           <Link
             to="/cart"
