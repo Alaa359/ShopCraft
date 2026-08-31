@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar.jsx';
 import Toast from './components/Toast.jsx';
 import SupportModals from './components/SupportModals.jsx';
@@ -20,12 +20,17 @@ import OrdersAdmin from './pages/admin/OrdersAdmin.jsx';
 
 // Point d'entrée de l'application : navigation + routes
 export default function App() {
+  const location = useLocation();
+  // Les pages "compte du site" s'affichent en pleine largeur (centrées),
+  // le reste de la boutique reste dans le conteneur classique.
+  const isFullPage = ['/account', '/profile', '/settings'].includes(location.pathname);
+
   return (
     <div className="app">
       <Navbar />
       <Toast />
       <SupportModals />
-      <main className="container">
+      <main className={isFullPage ? 'page-full' : 'container'}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/products/:id" element={<ProductPage />} />
