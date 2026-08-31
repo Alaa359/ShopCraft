@@ -1,6 +1,5 @@
 import { createContext, useContext, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { useAuthStore } from '../store/authStore.js';
 
 // Recherche partagée entre le header admin et les listes des pages
@@ -28,11 +27,6 @@ const ICONS = {
       <path d="M4 6h16M7 6V4.5A1.5 1.5 0 0 1 8.5 3h7A1.5 1.5 0 0 1 17 4.5V6M6 6l1 13a1.8 1.8 0 0 0 1.8 1.6h6.4A1.8 1.8 0 0 0 17 19l1-13" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
       <circle cx="9.5" cy="20" r="0.5" fill="currentColor" />
       <circle cx="15.5" cy="20" r="0.5" fill="currentColor" />
-    </svg>
-  ),
-  arrow: (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M19 12H5M11 6l-6 6 6 6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
   bell: (
@@ -66,27 +60,8 @@ const ICONS = {
   ),
 };
 
-// Dimensions fixes des icônes du dock (hauteur + écart) pour calculer la
-// distance souris / icône
-const DOCK_H = 50;
-const DOCK_GAP = 12;
-
-// Élément du dock vertical inspiré d'Apple : l'icône grossit quand le
-// curseur s'en approche, avec un retour élastique (spring).
-function DockItem({ mouseY, top, children }) {
-  const distance = useTransform(mouseY, (y) => {
-    const d = Math.abs(y - (top + DOCK_H / 2));
-    const RANGE = 70;
-    if (d > RANGE) return 1;
-    const lift = top === 0 ? 0.45 : 0.35; // le premier élément grossit un peu plus
-    return 1 + (1 - d / RANGE) * lift;
-  });
-  const scale = useSpring(distance, { stiffness: 340, damping: 20, mass: 0.5 });
-  return <motion.div className="admin-dock__item" style={{ scale }}>{children}</motion.div>;
-}
-
-// Layout admin : sidebar icônes (dock vertical pastel) + bandeau
-// (pills de navigation / recherche / notifications / avatar).
+// Layout admin : barre de navigation unique en haut (pills + recherche +
+// icônes + avatar). Pas de sidebar gauche.
 export default function AdminLayout({ children }) {
   const user = useAuthStore((state) => state.user);
   const [search, setSearch] = useState('');
@@ -98,110 +73,75 @@ export default function AdminLayout({ children }) {
     { to: '/admin/products', icon: ICONS.box, label: 'Produits' },
   ];
 
-  const mouseY = useMotionValue(-Infinity);
-
   return (
     <AdminSearchContext.Provider value={{ search, setSearch }}>
       <div className="admin-layout">
-        <aside className="admin-sidebar">
-          <Link to="/" className="admin-sidebar__brand" title="Retour à la boutique">
-            <span className="admin-sidebar__logo">SC</span>
+        <header className="admin-topbar">
+          <Link to="/" className="admin-topbar__brand" title="Retour à la boutique">
+            <span className="admin-topbar__logo">SC</span>
           </Link>
 
-          <nav
-            className="admin-sidebar__nav"
-            aria-label="Navigation admin"
-            onMouseMove={(e) => mouseY.set(e.clientY - e.currentTarget.getBoundingClientRect().top)}
-            onMouseLeave={() => mouseY.set(-Infinity)}
-          >
-            {NAV_ITEMS.map((item, index) => (
-              <DockItem key={item.to} mouseY={mouseY} top={index * (DOCK_H + DOCK_GAP)}>
-                <NavLink
-                  to={item.to}
-                  end={item.end}
-                  className="admin-sidebar__link"
-                  title={item.label}
-                >
-                  {item.icon}
-                  <span className="admin-sidebar__label">{item.label}</span>
-                </NavLink>
-              </DockItem>
+          <nav className="admin-topbar__pills" aria-label="Pages admin">
+            {NAV_ITEMS.map((item) => (
+              <NavLink key={item.to} to={item.to} end={item.end} className="admin-topbar__pill">
+                {item.icon}
+                <span>{item.label}</span>
+              </NavLink>
             ))}
           </nav>
 
-          <div className="admin-sidebar__footer">
+          <div className="admin-topbar__right">
+            <div className="admin-topbar__search">
+              {ICONS.search}
+              <input
+                type="search"
+                placeholder="Rechercher un produit, une commande..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                aria-label="Rechercher dans l'administration"
+              />
+            </div>
+
             <a
-              className="admin-sidebar__link"
+              className="admin-topbar__link"
               href="mailto:alaameur33@gmail.com?subject=Support ShopCraft"
               title="Besoin d'aide ?"
             >
               {ICONS.help}
-              <span className="admin-sidebar__label">Aide</span>
+              <span>Aide</span>
             </a>
-            <Link to="/account" className="admin-sidebar__link" title="Paramètres">
+
+            <Link to="/account" className="admin-topbar__link" title="Paramètres">
               {ICONS.settings}
-              <span className="admin-sidebar__label">Paramètres</span>
+              <span>Paramètres</span>
             </Link>
+
+            <button
+              type="button"
+              className="admin-topbar__icon"
+              aria-label="Messages"
+              title="Messages"
+            >
+              {ICONS.envelope}
+            </button>
+
+            <button
+              type="button"
+              className="admin-topbar__icon"
+              aria-label="Notifications"
+              title="Notifications"
+            >
+              {ICONS.bell}
+              <span className="admin-topbar__dot" aria-hidden="true" />
+            </button>
+
+            <span className="admin-topbar__avatar" title={user?.email ?? 'Admin'}>
+              {initial}
+            </span>
           </div>
+        </header>
 
-          <Link to="/" className="admin-sidebar__back" title="Retour à la boutique">
-            {ICONS.arrow}
-          </Link>
-        </aside>
-
-        <main className="admin-main">
-          <header className="admin-topbar">
-            <nav className="admin-topbar__pills" aria-label="Pages admin">
-              <NavLink to="/admin" end className="admin-topbar__pill">
-                Dashboard
-              </NavLink>
-              <NavLink to="/admin/orders" className="admin-topbar__pill">
-                Orders
-              </NavLink>
-              <NavLink to="/admin/products" className="admin-topbar__pill">
-                Products
-              </NavLink>
-            </nav>
-
-            <div className="admin-topbar__right">
-              <div className="admin-topbar__search">
-                {ICONS.search}
-                <input
-                  type="search"
-                  placeholder="Rechercher un produit, une commande..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  aria-label="Rechercher dans l'administration"
-                />
-              </div>
-
-              <button
-                type="button"
-                className="admin-topbar__icon"
-                aria-label="Messages"
-                title="Messages"
-              >
-                {ICONS.envelope}
-              </button>
-
-              <button
-                type="button"
-                className="admin-topbar__icon"
-                aria-label="Notifications"
-                title="Notifications"
-              >
-                {ICONS.bell}
-                <span className="admin-topbar__dot" aria-hidden="true" />
-              </button>
-
-              <span className="admin-topbar__avatar" title={user?.email ?? 'Admin'}>
-                {initial}
-              </span>
-            </div>
-          </header>
-
-          {children}
-        </main>
+        <main className="admin-main">{children}</main>
       </div>
     </AdminSearchContext.Provider>
   );

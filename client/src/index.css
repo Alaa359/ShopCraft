@@ -5083,135 +5083,72 @@ code {
   font-family: 'Inter', sans-serif;
 }
 
-/* ---------- Sidebar : dock vertical pastel (icônes rondes) ---------- */
-.admin-sidebar {
-  position: sticky;
-  top: 24px;
-  align-self: start;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 28px;
-  width: 100%;
-  padding: 12px 6px 14px;
-  background: transparent;
-  border: none;
+/* ---------- Barre de navigation unique (pas de sidebar gauche) ---------- */
+/* L'admin s'étend sur toute la largeur : pas de colonne gauche. */
+.admin-layout {
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+.admin-topbar {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding: 12px 14px;
   border-radius: 28px;
-  box-shadow: none;
+  background: var(--pastel-white);
+  border: 1px solid var(--pastel-line);
 }
 
-.admin-sidebar__brand {
+.admin-topbar__brand {
   display: flex;
+  flex-shrink: 0;
 }
 
-.admin-sidebar__logo {
+.admin-topbar__logo {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 46px;
   height: 46px;
   border-radius: 16px;
-  border: 1px solid var(--pastel-line);
-  background: var(--pastel-white);
-  color: var(--pastel-ink);
+  background: var(--pastel-ink);
+  color: var(--pastel-yellow);
   font-family: var(--font-display);
   font-size: 1rem;
   font-weight: 700;
 }
 
-.admin-sidebar__nav {
-  display: flex;
-  flex-direction: column;
+.admin-topbar__pill {
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding-top: 4px;
+  gap: 7px;
+  padding: 9px 16px;
 }
 
-.admin-dock__item {
-  position: relative;
-  display: flex;
-  justify-content: center;
+.admin-topbar__pill svg,
+.admin-topbar__link svg {
+  width: 16px;
+  height: 16px;
 }
 
-.admin-sidebar__link {
-  position: relative;
-  display: flex;
+.admin-topbar__link {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-  color: var(--pastel-muted);
-  text-decoration: none;
-  transition: background 0.18s ease, color 0.18s ease;
-}
-
-.admin-sidebar__link svg,
-.admin-sidebar__back svg {
-  width: 22px;
-  height: 22px;
-}
-
-.admin-sidebar__link:hover,
-.admin-sidebar__back:hover {
-  color: var(--pastel-ink);
-  background: rgba(26, 26, 26, 0.06);
-}
-
-/* Icône active : pastille jaune derrière l'icône, icône en noir */
-.admin-sidebar__link.active,
-.admin-sidebar__link.active:hover {
-  background: var(--pastel-yellow);
-  color: var(--pastel-ink);
-}
-
-.admin-sidebar__label {
-  position: absolute;
-  left: calc(100% + 12px);
-  top: 50%;
-  z-index: 8;
-  padding: 6px 12px;
+  gap: 7px;
+  padding: 10px 14px;
   border-radius: 999px;
-  background: var(--pastel-ink);
-  color: #fff;
-  font-size: 0.78rem;
-  font-weight: 600;
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transform: translateY(-50%) translateX(-6px);
-  transition: opacity 0.15s ease, transform 0.15s ease;
-}
-
-.admin-sidebar__link:hover .admin-sidebar__label,
-.admin-sidebar__link:focus-visible .admin-sidebar__label {
-  opacity: 1;
-  transform: translateY(-50%) translateX(0);
-}
-
-.admin-sidebar__footer {
-  margin-top: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.admin-sidebar__back {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
+  border: 1px solid var(--pastel-line);
+  background: #F7F7F5;
   color: var(--pastel-muted);
+  font-size: 0.86rem;
+  font-weight: 600;
   text-decoration: none;
   transition: background 0.18s ease, color 0.18s ease;
+}
+
+.admin-topbar__link:hover {
+  color: var(--pastel-ink);
+  background: var(--pastel-white);
 }
 
 /* ---------- Bandeau : pills de navigation + recherche + icônes ---------- */
@@ -5348,49 +5285,17 @@ code {
   font-size: 1rem;
 }
 
-/* ---------- Responsive mobile (< 768px) : dock horizontal ---------- */
-@media (max-width: 767px) {
-  .admin-layout {
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
-
-  .admin-sidebar {
-    position: static;
-    top: auto;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 18px;
-    padding: 8px 12px;
-    border-radius: 24px;
-    background: var(--pastel-white);
-    border: 1px solid var(--pastel-line);
-  }
-
-  .admin-sidebar__nav {
-    flex-direction: row;
-    gap: 10px;
-  }
-
-  .admin-sidebar__brand,
-  .admin-sidebar__footer,
-  .admin-sidebar__back {
-    display: none;
-  }
-
-  .admin-sidebar__label {
-    display: none;
-  }
-
+/* ---------- Responsive mobile : barre qui se replie proprement ---------- */
+@media (max-width: 900px) {
   .admin-topbar {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
   }
 
   .admin-topbar__pills {
-    align-self: center;
+    align-self: flex-start;
+    flex-wrap: wrap;
+    max-width: 100%;
   }
 
   .admin-topbar__right {
@@ -5399,10 +5304,40 @@ code {
 
   .admin-topbar__right .admin-topbar__search {
     flex: 1;
+    min-width: min(100%, 220px);
   }
 
   .admin-topbar__search input {
     min-width: 0;
+  }
+
+  .admin-topbar__link span {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .admin-layout {
+    gap: 14px;
+  }
+
+  .admin-topbar__pills {
+    gap: 2px;
+  }
+
+  .admin-topbar__pill {
+    padding: 8px 12px;
+    font-size: 0.84rem;
+  }
+
+  .admin-topbar__right {
+    gap: 8px;
+  }
+
+  .admin-topbar__icon,
+  .admin-topbar__avatar {
+    width: 40px;
+    height: 40px;
   }
 }
 
