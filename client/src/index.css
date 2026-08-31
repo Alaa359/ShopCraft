@@ -300,8 +300,13 @@ code {
   justify-content: center;
   width: 38px;
   height: 38px;
+  padding: 0;
+  border: none;
   border-radius: 50%;
+  background: transparent;
   color: var(--text);
+  font: inherit;
+  cursor: pointer;
   transition: background 0.2s ease, color 0.2s ease;
 }
 
@@ -6539,15 +6544,35 @@ code {
   color: var(--accent);
 }
 
-/* "Aide" dans le bandeau admin : format du lien pour un <button> */
-.admin-topbar__link--btn {
-  font: inherit;
-  cursor: pointer;
-}
+/* "Aide" dans le bandeau admin : supprimé, remplacé par la cloche/enveloppe */
 
 /* Ancrage de la cloche (panneau positionné sous l'icône) */
 .navbar__bell {
   position: relative;
+}
+
+/* Ancrage de l'enveloppe notifications du bandeau admin */
+.admin-topbar__bell {
+  position: relative;
+}
+
+/* Badge compteur du bandeau admin (enveloppe messages) */
+.admin-topbar__badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #E07A5F;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--pastel-white);
+  animation: pop 0.3s ease;
 }
 
 /* Panneau de la cloche */
@@ -6684,6 +6709,31 @@ code {
 
 .support-bell__empty p {
   margin: 0;
+}
+
+.support-bell__footer {
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+}
+
+.support-bell__inbox {
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 12px;
+  background: var(--bg-soft);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.support-bell__inbox:hover {
+  background: var(--accent);
+  color: #fff;
 }
 
 /* Texte zone de saisie (modale aide / réponse) */

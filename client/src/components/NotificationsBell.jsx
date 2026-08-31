@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore.js';
 import { useNotificationStore, useSupportStore } from '../store/notificationStore.js';
@@ -19,13 +20,25 @@ function BellIcon() {
   );
 }
 
+// Icône enveloppe / message (SVG inline)
+function EnvelopeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="3" y="5.5" width="18" height="13" rx="3" fill="none" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M3.5 7l8.5 6 8.5-6" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function formatDate(iso) {
   return new Date(iso).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
 }
 
-// Cloche de notifications : visible sur toutes les pages, dans la barre du site.
-// Affiche les demandes d'aide (côté admin) et les réponses (côté utilisateur).
-export default function NotificationsBell() {
+// Contrôle de notifications réutilisable dans la barre du site (cloche) et le
+// bandeau admin (enveloppe "messages") : même panneau, mêmes données.
+export default function NotificationsBell({ variant = 'nav' }) {
+  const isAdminVariant = variant === 'admin';
+
   const user = useAuthStore((state) => state.user);
   const items = useNotificationStore((state) => state.items);
   const unreadCount = useNotificationStore((state) => state.unreadCount);
@@ -34,9 +47,11 @@ export default function NotificationsBell() {
   const markRead = useNotificationStore((state) => state.markRead);
   const reset = useNotificationStore((state) => state.reset);
   const openThread = useSupportStore((state) => state.openThread);
+  const openInbox = useSupportStore((state) => state.openInbox);
 
   const [open, setOpen] = useState(false);
   const boxRef = useRef(null);
+  const panelRef = useRef(null);
 
   // Rafraîchit les notifications au changement d'utilisateur, puis toutes les 30 s
   useEffect(() => {
@@ -53,11 +68,13 @@ export default function NotificationsBell() {
     return () => clearInterval(timer);
   }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Ferme le panneau au clic extérieur
+  // Ferme le panneau au clic extérieur (bouton + panneau rendu en portal)
   useEffect(() => {
     if (!open) return undefined;
     function onDocClick(e) {
-      if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false);
+      const inBox = boxRef.current && boxRef.current.contains(e.target);
+      const inPanel = panelRef.current && panelRef.current.contains(e.target);
+      if (!inBox && !inPanel) setOpen(false);
     }
     document.addEventListener('mousedown', onDocClick);
     return () => document.removeEventListener('mousedown', onDocClick);
@@ -82,72 +99,95 @@ export default function NotificationsBell() {
     markRead();
   }
 
+  function handleInbox() {
+    setOpen(false);
+    openInbox();
+  }
+
+  const containerClass = isAdminVariant ? 'admin-topbar__bell' : 'navbar__bell';
+  const buttonClass = isAdminVariant ? 'admin-topbar__icon' : 'navbar__action';
+  const badgeClass = isAdminVariant ? 'admin-topbar__badge' : 'navbar__badge';
+
   return (
-    <div className="navbar__bell" ref={boxRef}>
+    <div className={containerClass} ref={boxRef}>
       <button
         type="button"
-        className="navbar__action"
-        aria-label="Notifications"
+        className={buttonClass}
+        aria-label={isAdminVariant ? 'Messages et notifications' : 'Notifications'}
         aria-expanded={open}
-        title="Notifications"
+        title={isAdminVariant ? 'Messages et notifications' : 'Notifications'}
         onClick={handleToggle}
       >
-        <BellIcon />
+        {isAdminVariant ? <EnvelopeIcon /> : <BellIcon />}
         {unreadCount > 0 && (
-          <span key={unreadCount} className="navbar__badge">
+          <span key={unreadCount} className={badgeClass}>
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
-      {open && (
-        <div className="support-bell">
-          <div className="support-bell__head">
-            <span className="support-bell__title">Notifications</span>
-            {unreadCount > 0 && (
-              <button type="button" className="support-bell__markall" onClick={handleMarkAll}>
-                Tout marquer lu
-              </button>
-            )}
-          </div>
+      {open &&
+        createPortal(
+          <div className="support-bell" ref={panelRef}>
+            <div className="support-bell__head">
+              <span className="support-bell__title">Notifications</span>
+              {unreadCount > 0 && (
+                <button type="button" className="support-bell__markall" onClick={handleMarkAll}>
+                  Tout marquer lu
+                </button>
+              )}
+            </div>
 
-          {!user ? (
-            <div className="support-bell__empty">
-              <p>Connectez-vous pour voir vos notifications.</p>
-              <Link to="/login" className="btn btn--primary btn--small" onClick={() => setOpen(false)}>
-                Connexion
-              </Link>
-            </div>
-          ) : loading && items.length === 0 ? (
-            <div className="support-bell__empty">
-              <p>Chargement...</p>
-            </div>
-          ) : items.length === 0 ? (
-            <div className="support-bell__empty">
-              <p>Aucune notification pour le moment.</p>
-            </div>
-          ) : (
-            <ul className="support-bell__list">
-              {items.map((item) => (
-                <li key={item.id}>
-                  <button
-                    type="button"
-                    className={`support-bell__item ${item.read ? '' : 'is-unread'}`}
-                    onClick={() => handleItemClick(item)}
-                  >
-                    <span className="support-bell__dot" aria-hidden="true" />
-                    <span className="support-bell__body">
-                      <span className="support-bell__title--item">{item.title}</span>
-                      <span className="support-bell__text">{item.body}</span>
-                      <span className="support-bell__time">{formatDate(item.createdAt)}</span>
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+            {!user ? (
+              <div className="support-bell__empty">
+                <p>Connectez-vous pour voir vos notifications.</p>
+                <Link
+                  to="/login"
+                  className="btn btn--primary btn--small"
+                  onClick={() => setOpen(false)}
+                >
+                  Connexion
+                </Link>
+              </div>
+            ) : loading && items.length === 0 ? (
+              <div className="support-bell__empty">
+                <p>Chargement...</p>
+              </div>
+            ) : items.length === 0 ? (
+              <div className="support-bell__empty">
+                <p>Aucune notification pour le moment.</p>
+              </div>
+            ) : (
+              <ul className="support-bell__list">
+                {items.map((item) => (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      className={`support-bell__item ${item.read ? '' : 'is-unread'}`}
+                      onClick={() => handleItemClick(item)}
+                    >
+                      <span className="support-bell__dot" aria-hidden="true" />
+                      <span className="support-bell__body">
+                        <span className="support-bell__title--item">{item.title}</span>
+                        <span className="support-bell__text">{item.body}</span>
+                        <span className="support-bell__time">{formatDate(item.createdAt)}</span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {user?.role === 'ADMIN' && (
+              <div className="support-bell__footer">
+                <button type="button" className="support-bell__inbox" onClick={handleInbox}>
+                  Boîte des demandes (admin)
+                </button>
+              </div>
+            )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

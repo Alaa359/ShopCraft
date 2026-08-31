@@ -1,7 +1,7 @@
 import { createContext, useContext, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore.js';
-import { useSupportStore } from '../store/notificationStore.js';
+import NotificationsBell from './NotificationsBell.jsx';
 
 // Recherche partagée entre le header admin et les listes des pages
 const AdminSearchContext = createContext({ search: '', setSearch: () => {} });
@@ -36,22 +36,10 @@ const ICONS = {
       <path d="M16 16l4.5 4.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   ),
-  envelope: (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="3" y="5.5" width="18" height="13" rx="3" fill="none" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M3.5 7l8.5 6 8.5-6" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  ),
   settings: (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="1.6" />
       <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  ),
-  help: (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M9.5 9.4a2.6 2.6 0 0 1 5.1.7c0 1.7-2.6 2.2-2.6 3.7M12 17.2h.01" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   ),
 };
@@ -60,7 +48,6 @@ const ICONS = {
 // icônes + avatar). Pas de sidebar gauche.
 export default function AdminLayout({ children }) {
   const user = useAuthStore((state) => state.user);
-  const openInbox = useSupportStore((state) => state.openInbox);
   const [search, setSearch] = useState('');
   const initial = (user?.name || user?.email || 'A').charAt(0).toUpperCase();
 
@@ -99,29 +86,12 @@ export default function AdminLayout({ children }) {
               />
             </div>
 
-            <button
-              type="button"
-              className="admin-topbar__link admin-topbar__link--btn"
-              title="Demandes d'aide reçues"
-              onClick={openInbox}
-            >
-              {ICONS.help}
-              <span>Aide</span>
-            </button>
-
             <Link to="/account" className="admin-topbar__link" title="Paramètres">
               {ICONS.settings}
               <span>Paramètres</span>
             </Link>
 
-            <button
-              type="button"
-              className="admin-topbar__icon"
-              aria-label="Messages"
-              title="Messages"
-            >
-              {ICONS.envelope}
-            </button>
+            <NotificationsBell variant="admin" />
 
             <span className="admin-topbar__avatar" title={user?.email ?? 'Admin'}>
               {initial}
