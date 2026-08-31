@@ -3940,98 +3940,173 @@ code {
   }
 }
 
-/* ---------- Sidebar : icônes seules sur fond clair ---------- */
+/* ---------- Sidebar : menu 3D, assorti au thème clair/noir profond ---------- */
 .admin-sidebar {
   position: sticky;
   top: calc(var(--header-h) + 20px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
-  padding: 18px 10px;
-  border: none;
+  gap: 30px;
+  padding: 20px 12px 16px;
+  border: 1px solid var(--border);
   border-radius: 20px;
-  background: #fcf9f3;
-  box-shadow: var(--shadow-sm);
+  background: linear-gradient(180deg, #fff, #faf7f0);
+  box-shadow: 0 8px 24px rgba(31, 27, 22, 0.07), inset 0 1px 0 #fff;
   color: var(--text);
+}
+
+.admin-sidebar__brand {
+  display: flex;
 }
 
 .admin-sidebar__logo {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, var(--gold), #a9832f);
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(160deg, #26211b, #171310 70%);
   color: #fff;
   font-family: var(--font-display);
   font-weight: 800;
   font-size: 1.05rem;
   letter-spacing: 0.02em;
-  box-shadow: 0 6px 14px rgba(201, 162, 39, 0.35);
+  box-shadow: 0 6px 14px rgba(23, 19, 16, 0.22);
+  animation: admin-fade-in 0.4s ease backwards;
+}
+
+@keyframes admin-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
 }
 
 .admin-sidebar__nav {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   min-width: 0;
+  width: 100%;
+  padding-top: 2px;
 }
 
+/* Forme des boutons du menu = celle des contrôles de la zone commandes
+   (filtre blanc arrondi, onglet actif or, badge pilule) */
 .admin-sidebar__link {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
+  width: 52px;
+  height: 48px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #fff;
   color: var(--muted);
   text-decoration: none;
-  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  animation: admin-fade-in 0.4s ease backwards;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
+.admin-sidebar__nav .admin-sidebar__link:nth-child(1) { animation-delay: 0.05s; }
+.admin-sidebar__nav .admin-sidebar__link:nth-child(2) { animation-delay: 0.1s; }
+.admin-sidebar__nav .admin-sidebar__link:nth-child(3) { animation-delay: 0.15s; }
 
 .admin-sidebar__link svg,
 .admin-sidebar__back svg {
-  width: 22px;
-  height: 22px;
+  width: 21px;
+  height: 21px;
 }
 
+/* Survol : léger rehaut doré, comme le filtre de la zone commandes */
 .admin-sidebar__link:hover {
-  color: var(--nav-ink);
-  background: var(--nav-soft);
-  transform: translateY(-1px);
+  color: var(--gold);
+  border-color: var(--gold);
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(201, 162, 39, 0.18);
 }
 
-/* Icône active : fond noir profond (couleur de la page d'accueil) */
+/* Menu actif : pastille or pleine, comme l'onglet actif / CTA de la zone commandes */
 .admin-sidebar__link.active {
-  color: var(--nav-ink);
-  background: var(--nav-soft-strong);
-  box-shadow: inset 0 0 0 2px var(--nav-ink);
-  font-weight: 600;
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(201, 162, 39, 0.3);
 }
 
+.admin-sidebar__link.active:hover {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(201, 162, 39, 0.35);
+}
+
+/* Libellé flottant : simple apparition en fondu */
 .admin-sidebar__label {
-  display: none;
+  position: absolute;
+  left: calc(100% + 14px);
+  top: 50%;
+  z-index: 5;
+  padding: 6px 13px;
+  border-radius: 10px;
+  background: var(--nav-ink);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-50%) translateX(-6px);
+  box-shadow: 0 8px 18px rgba(23, 19, 16, 0.22);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.admin-sidebar__label::before {
+  content: '';
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  margin-top: -5px;
+  border: 5px solid transparent;
+  border-right-color: var(--nav-ink);
+}
+.admin-sidebar__link:hover .admin-sidebar__label,
+.admin-sidebar__link:focus-visible .admin-sidebar__label {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
 }
 
+/* Bouton retour : même forme que le bouton ghost de la zone commandes */
 .admin-sidebar__back {
   margin-top: auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
+  width: 48px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #fff;
   color: var(--muted);
   text-decoration: none;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.admin-sidebar__back:hover {
+  color: var(--gold);
+  border-color: var(--gold);
+  box-shadow: 0 4px 12px rgba(201, 162, 39, 0.18);
 }
 
-.admin-sidebar__back:hover {
-  color: var(--nav-ink);
-  background: var(--nav-soft);
+@media (prefers-reduced-motion: reduce) {
+  .admin-sidebar__logo,
+  .admin-sidebar__link,
+  .admin-sidebar__label,
+  .admin-sidebar__back {
+    animation: none;
+    transition: none;
+  }
 }
 
 /* ---------- Zone de contenu ---------- */
@@ -4667,6 +4742,144 @@ code {
   color: var(--text);
 }
 
+/* ---------- Aperçu clients : améliorations ---------- */
+.dash-client {
+  gap: 16px;
+  padding: 16px 20px 10px;
+}
+
+.dash-donut {
+  width: 100px;
+  height: 100px;
+  animation: dash-donut-pop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.1) backwards;
+  filter: drop-shadow(0 6px 14px rgba(178, 142, 77, 0.28));
+}
+
+.dash-donut svg {
+  width: 100px;
+  height: 100px;
+}
+
+@keyframes dash-donut-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.7) rotate(-24deg);
+  }
+}
+
+.dash-donut__value {
+  stroke-width: 11;
+}
+
+.dash-donut__center strong {
+  font-size: 1.3rem;
+}
+
+.dash-donut__center span {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.dash-client__stats {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.dash-client__stat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fff, #faf7f0);
+  box-shadow: inset 0 1px 0 #fff, 0 3px 10px rgba(31, 27, 22, 0.05);
+}
+
+.dash-client__stat svg {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  padding: 7px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--gold);
+}
+
+.dash-client__stat:nth-child(2) svg {
+  background: var(--gold);
+  color: #fff;
+}
+
+.dash-client__stat strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  line-height: 1.15;
+  color: var(--text);
+}
+
+.dash-client__stat span {
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
+/* Barres de CA : dégradé or + élargissement animé */
+.dash-bar {
+  padding: 7px 0;
+}
+
+.dash-bar__label {
+  flex-basis: 84px;
+  font-weight: 600;
+}
+
+.dash-bar__track {
+  height: 10px;
+}
+
+.dash-bar__fill {
+  background: linear-gradient(90deg, #e3cf97, #b28e4d);
+  transform-origin: left;
+  animation: dash-bar-grow 0.9s cubic-bezier(0.2, 0.9, 0.3, 1) backwards;
+}
+
+@keyframes dash-bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.dash-bar__value {
+  font-weight: 700;
+}
+
+/* Ligne total */
+.dash-bar--total {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+}
+
+.dash-bar--total .dash-bar__track {
+  display: none;
+}
+
+.dash-bar--total .dash-bar__label {
+  flex: 1;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.dash-bar--total .dash-bar__value {
+  font-size: 0.95rem;
+  color: var(--gold);
+}
+
 /* ---------- Stock / inventaire : mini bar chart + alertes ---------- */
 .dash-stock {
   padding-bottom: 8px;
@@ -4773,6 +4986,10 @@ code {
     border-top: none;
   }
 
+  .admin-sidebar__label {
+    display: none;
+  }
+
   .admin__cards {
     grid-template-columns: 1fr;
     gap: 16px;
@@ -4809,4 +5026,58 @@ code {
   .admin__table-wrap {
     overflow-x: auto;
   }
+}
+
+/* ============================================================
+   THÈME PASTEL — ESPACE ADMIN
+   Dashboard « flat pastel » : fond #F7F7F5, cartes pastel, coins
+   très arrondis, pas d'ombres dures, police arrondie Quicksand.
+   On écrase uniquement l'espace .admin-layout, jamais la boutique.
+   ============================================================ */
+:root {
+  --pastel-bg: #F7F7F5;
+  --pastel-yellow: #F4E87C;
+  --pastel-blue: #D4DCE3;
+  --pastel-green: #C9DCC4;
+  --pastel-pink: #EFD7D2;
+  --pastel-purple: #DCD3E8;
+  --pastel-white: #FFFFFF;
+  --pastel-line: #E8E8E5;
+  --pastel-ink: #1A1A1A;
+  --pastel-muted: #6B6B68;
+  --pastel-yellow-soft: #FBF3B4;
+  --pastel-blue-soft: #E7ECEF;
+  --pastel-green-soft: #E4EEE1;
+  --pastel-pink-soft: #F6EBE6;
+  --pastel-purple-soft: #EDE7F2;
+}
+
+.admin-layout {
+  --bg-page: var(--pastel-bg);
+  --bg: var(--pastel-white);
+  --bg-soft: #F2F2EF;
+  --bg-well: #EFEFEB;
+  --text: var(--pastel-ink);
+  --muted: var(--pastel-muted);
+  --border: var(--pastel-line);
+  --accent: var(--pastel-ink);
+  --accent-2: #000000;
+  --accent-soft: rgba(26, 26, 26, 0.06);
+  --gold: #b28e4d;
+  --font-display: 'Quicksand', 'Inter', sans-serif;
+  --success-soft: #E4EEE1;
+  --warning-soft: #FBF3B4;
+  --error-soft: #F9E7E1;
+  max-width: 1680px;
+  margin: 0 auto;
+  padding: 20px 20px 32px;
+  background: var(--pastel-bg);
+}
+
+.admin-layout,
+.admin-layout input,
+.admin-layout button,
+.admin-layout select,
+.admin-layout textarea {
+  font-family: 'Inter', sans-serif;
 }
