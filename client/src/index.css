@@ -5036,7 +5036,8 @@ code {
    ============================================================ */
 :root {
   --pastel-bg: #F7F7F5;
-  --pastel-yellow: #F4E87C;
+  --pastel-yellow: #f2ead8;
+  /* #f2ead8 = crème de l'accueil (--gold-soft), remplace l'ancien #F4E87C */
   --pastel-blue: #D4DCE3;
   --pastel-green: #C9DCC4;
   --pastel-pink: #EFD7D2;
