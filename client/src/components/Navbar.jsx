@@ -5,21 +5,8 @@ import { useAuthStore } from '../store/authStore.js';
 import { useSupportStore } from '../store/notificationStore.js';
 import NotificationsBell from './NotificationsBell.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
-
-// Icône compte / utilisateur (SVG inline)
-function AccountIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" strokeWidth="1.6" />
-      <path
-        d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-      />
-    </svg>
-  );
-}
+import UserMenu from './UserMenu.jsx';
+import { useT } from '../i18n.js';
 
 // Icône panier (SVG inline)
 function CartIcon() {
@@ -44,6 +31,7 @@ export default function Navbar() {
   const count = useCartStore(selectCartCount);
   const user = useAuthStore((state) => state.user);
   const openHelp = useSupportStore((state) => state.openHelp);
+  const { t } = useT();
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
@@ -83,8 +71,8 @@ export default function Navbar() {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Rechercher un produit..."
-            aria-label="Rechercher un produit"
+            placeholder={t('search')}
+            aria-label={t('search')}
           />
         </form>
 
@@ -94,17 +82,17 @@ export default function Navbar() {
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rechercher un produit..."
-              aria-label="Rechercher un produit"
+              placeholder={t('search')}
+              aria-label={t('search')}
               autoFocus={menuOpen}
             />
           </form>
           <NavLink to="/" className="navbar__link" onClick={closeMenu}>
-            Accueil
+            {t('home')}
           </NavLink>
           {user?.role === 'ADMIN' && (
             <NavLink to="/admin" className="navbar__link" onClick={closeMenu}>
-              Dashboard
+              {t('dashboard')}
             </NavLink>
           )}
           <button
@@ -115,27 +103,19 @@ export default function Navbar() {
               openHelp();
             }}
           >
-            Aide
+            {t('help')}
           </button>
           <ThemeToggle />
-          {user ? (
-            <Link to="/account" className="navbar__link" onClick={closeMenu}>
-              Mon compte
-            </Link>
-          ) : (
+          {!user && (
             <Link to="/login" className="navbar__link" onClick={closeMenu}>
-              Connexion
+              {t('login')}
             </Link>
           )}
         </nav>
 
         <div className="navbar__actions">
           <NotificationsBell />
-          {user && (
-            <Link to="/account" className="navbar__action" aria-label="Mon compte" title="Mon compte">
-              <AccountIcon />
-            </Link>
-          )}
+          {user && <UserMenu />}
           <Link
             to="/cart"
             className="navbar__action"

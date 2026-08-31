@@ -17,7 +17,14 @@ function signToken(user) {
 
 // Convertit un utilisateur en objet JSON sans données sensibles
 function publicUser(user) {
-  return { id: user.id, email: user.email, role: user.role, createdAt: user.createdAt };
+  return {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    displayName: user.displayName,
+    avatar: user.avatar,
+    createdAt: user.createdAt,
+  };
 }
 
 // POST /api/auth/register — création de compte
@@ -84,12 +91,44 @@ router.get('/me', auth, async (req, res, next) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      select: { id: true, email: true, role: true, createdAt: true },
+      select: { id: true, email: true, role: true, displayName: true, avatar: true, createdAt: true },
     });
     if (!user) {
       return res.status(404).json({ error: 'Utilisateur introuvable' });
     }
     res.json(user);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /api/auth/me — met à jour le profil (nom affiché, photo de profil)
+router.patch('/me', auth, async (req, res, next) => {
+  try {
+    const { displayName, avatar } = req.body ?? {};
+    const data = {};
+
+    if (displayName !== undefined) {
+      const name = displayName == null ? '' : String(displayName).trim();
+      if (name.length > 60) {
+        return res.status(400).json({ error: 'Le nom affiché doit contenir moins de 60 caractères' });
+      }
+      data.displayName = name || null;
+    }
+
+    if (avatar !== undefined) {
+      const url = avatar == null ? '' : String(avatar).trim();
+      if (url.length > 500) {
+        return res.status(400).json({ error: 'URL de photo de profil invalide' });
+      }
+      data.avatar = url || null;
+    }
+
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data,
+    });
+    res.json(publicUser(user));
   } catch (err) {
     next(err);
   }

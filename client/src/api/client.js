@@ -119,6 +119,38 @@ export function getMe(token) {
   });
 }
 
+// Met à jour le profil : data : { displayName?, avatar? }
+export function updateMe(token, data) {
+  return request('/auth/me', {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+// Upload de la photo de profil (tout utilisateur connecté). Retourne { url }.
+export async function uploadAvatar(token, file) {
+  const formData = new FormData();
+  formData.append('image', file);
+
+  let res;
+  try {
+    res = await fetch(`${API_URL}/upload/avatar`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+  } catch {
+    throw new Error("Impossible de contacter le serveur. Vérifiez que l'API est démarrée.");
+  }
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Erreur upload (${res.status})`);
+  }
+  return res.json();
+}
+
 // ---------- Commandes & Paiement ----------
 
 // Prépare le paiement d'un panier (renvoie { clientSecret, mode, total, publicKey })

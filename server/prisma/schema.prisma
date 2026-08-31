@@ -38,11 +38,13 @@ enum OrderStatus {
 
 // Compte utilisateur (client ou admin)
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String // stocké haché (bcrypt)
-  role      Role     @default(USER)
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  email       String   @unique
+  password    String // stocké haché (bcrypt)
+  role        Role     @default(USER)
+  displayName String? // nom affiché (modifiable dans le profil)
+  avatar      String? // URL de la photo de profil (optionnelle)
+  createdAt   DateTime @default(now())
 
   orders  Order[]
   reviews Review[]
