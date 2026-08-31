@@ -3914,6 +3914,10 @@ code {
   --error-soft: #fbeae6;
   --muted-bg: #f1eee6;
   --border: #ede6d8;
+  /* Couleur du menu reprise de la page d'accueil (--accent : noir profond) */
+  --nav-ink: #171310;
+  --nav-soft: rgba(23, 19, 16, 0.08);
+  --nav-soft-strong: rgba(23, 19, 16, 0.12);
   --radius: 10px;
   --radius-lg: 20px;
   --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.04);
@@ -3995,16 +3999,16 @@ code {
 }
 
 .admin-sidebar__link:hover {
-  color: var(--gold);
-  background: var(--accent-soft);
+  color: var(--nav-ink);
+  background: var(--nav-soft);
   transform: translateY(-1px);
 }
 
-/* Icône active : fond doré clair circulaire */
+/* Icône active : fond noir profond (couleur de la page d'accueil) */
 .admin-sidebar__link.active {
-  color: #8f6f1e;
-  background: var(--accent-soft);
-  box-shadow: inset 0 0 0 2px var(--gold);
+  color: var(--nav-ink);
+  background: var(--nav-soft-strong);
+  box-shadow: inset 0 0 0 2px var(--nav-ink);
   font-weight: 600;
 }
 
@@ -4026,8 +4030,8 @@ code {
 }
 
 .admin-sidebar__back:hover {
-  color: var(--gold);
-  background: var(--accent-soft);
+  color: var(--nav-ink);
+  background: var(--nav-soft);
 }
 
 /* ---------- Zone de contenu ---------- */
@@ -4102,7 +4106,7 @@ code {
 }
 
 .admin-topbar__bell:hover {
-  color: var(--gold);
+  color: var(--nav-ink);
   transform: translateY(-1px);
 }
 
