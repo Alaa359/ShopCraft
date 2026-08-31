@@ -6088,3 +6088,303 @@ code {
     align-self: center;
   }
 }
+
+/* =========================================================
+   THEME PASTEL — PAGES ADMIN (step 5 : shared + produits)
+   Cadres, tableaux, boutons, formulaires, modales des pages
+   Produits / Commandes. Scope : .admin-layout uniquement.
+   ========================================================= */
+
+.admin__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 4px 0 18px;
+  border: none;
+  padding: 0;
+  background: transparent;
+}
+
+.admin__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--pastel-ink);
+}
+
+.admin__subtitle--small {
+  color: var(--pastel-muted);
+}
+
+.admin__panel {
+  background: var(--pastel-white);
+  border: 1px solid var(--pastel-line);
+  border-radius: 26px;
+  box-shadow: none;
+  overflow: visible;
+  padding: 18px 20px;
+}
+
+/* Tableaux produits/commandes : lignes pastel */
+.admin__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin__table th {
+  color: var(--pastel-muted);
+}
+
+.admin__table tbody tr {
+  transition: background 0.15s ease;
+}
+
+.admin__table tbody tr:hover {
+  background: #F6F6F3;
+}
+
+.admin__thumb {
+  border-radius: 14px;
+}
+
+.admin__thumb--empty {
+  background: var(--pastel-line);
+}
+
+.admin__product-name {
+  font-weight: 600;
+}
+
+.admin__note-text {
+  font-size: 0.78rem;
+  color: var(--pastel-muted);
+}
+
+.admin__row-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.admin__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid var(--pastel-line);
+  background: #FAFAF7;
+  color: var(--pastel-ink);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.admin__icon-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.admin__icon-btn:hover {
+  background: var(--pastel-ink);
+  color: #fff;
+  border-color: var(--pastel-ink);
+}
+
+.admin__icon-btn--danger:hover {
+  background: #A24A35;
+  border-color: #A24A35;
+}
+
+/* Boutons pastel (pills arrondies, sans bordure dure) */
+.admin-layout .btn {
+  border-radius: 999px;
+  padding: 11px 18px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.admin-layout .btn--primary {
+  background: var(--pastel-ink);
+  color: #fff;
+  border: none;
+}
+
+.admin-layout .btn--primary:hover:not(:disabled) {
+  background: #000;
+  box-shadow: none;
+  transform: translateY(-1px);
+}
+
+.admin-layout .btn--ghost {
+  background: transparent;
+  color: var(--pastel-ink);
+  border: 1px solid var(--pastel-line);
+}
+
+.admin-layout .btn--ghost:hover:not(:disabled) {
+  background: #F2F2EF;
+  border-color: rgba(26, 26, 26, 0.35);
+  color: var(--pastel-ink);
+}
+
+.admin-layout .btn--danger {
+  background: #F9E7E1;
+  color: #A24A35;
+  border: none;
+}
+
+.admin-layout .btn--danger:hover:not(:disabled) {
+  background: #F3D3C6;
+  color: #8C3A27;
+}
+
+/* Modales : cadres très arrondis, ombre douce */
+.modal {
+  border-radius: 28px;
+  border: 1px solid var(--pastel-line);
+  background: var(--pastel-white);
+  box-shadow: 0 24px 60px rgba(26, 26, 26, 0.16);
+}
+
+.modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.modal__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--pastel-ink);
+}
+
+.modal__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: #F2F2EF;
+  color: var(--pastel-ink);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.modal__close:hover {
+  background: var(--pastel-ink);
+  color: #fff;
+}
+
+.modal__text {
+  color: var(--pastel-muted);
+}
+
+.modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* Formulaire produit : champs arrondis, fond crème */
+.admin__form .admin__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--pastel-ink);
+}
+
+.admin__form input,
+.admin__form textarea {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--pastel-line);
+  background: #F7F7F5;
+  color: var(--pastel-ink);
+  font: inherit;
+  font-size: 0.9rem;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.admin__form input:focus,
+.admin__form textarea:focus {
+  outline: none;
+  border-color: var(--pastel-ink);
+  background: #fff;
+}
+
+.admin__dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 26px 18px;
+  border-radius: 18px;
+  border: 1.5px dashed rgba(26, 26, 26, 0.28);
+  background: #F7F7F5;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.admin__dropzone.is-dragging {
+  border-color: var(--pastel-ink);
+  background: #fff;
+}
+
+.admin__dropzone-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--pastel-ink);
+}
+
+.admin__dropzone-hint {
+  font-size: 0.78rem;
+  color: var(--pastel-muted);
+}
+
+.admin__preview {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--pastel-line);
+  background: #fff;
+}
+
+.admin__preview button {
+  background: var(--pastel-ink);
+  color: #fff;
+}
+
+.admin__form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+/* Responsive page admin */
+@media (max-width: 767px) {
+  .admin__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin__panel {
+    padding: 14px;
+    border-radius: 22px;
+  }
+}
