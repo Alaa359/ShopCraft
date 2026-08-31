@@ -1,5 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts';
 import { useAuthStore } from '../../store/authStore.js';
 import { getStats, getAllOrders, getProducts } from '../../api/client.js';
 
@@ -20,93 +32,47 @@ const PERIODS = [
   { value: '90', label: '90 jours' },
 ];
 
-// Icône SVG associée à chaque carte de statistique
-function CardIcon({ type }) {
-  if (type === 'revenus') {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.6" />
-        <path d="M15 9c-.5-1.2-1.7-2-3-2s-2.6.8-2.6 2 1 1.8 2.6 2.3 2.6 1.1 2.6 2.3-1.7 2-2.6 2-2.5-.8-3-2M12 6v1.5M12 15v1.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      </svg>
-    );
-  }
-  if (type === 'commandes') {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 6h16M7 6V4.5A1.5 1.5 0 0 1 8.5 3h7A1.5 1.5 0 0 1 17 4.5V6M6 6l1 13a1.8 1.8 0 0 0 1.8 1.6h6.4A1.8 1.8 0 0 0 17 19l1-13" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      </svg>
-    );
-  }
-  if (type === 'stock') {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M3.5 7l8.5-4 8.5 4-8.5 4z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-        <path d="M3.5 7v10l8.5 4 8.5-4V7M12 11v10" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M12 3l2.6 5.6 6.1.6-4.6 4 1.3 6L12 16.3 6.6 19.2l1.3-6-4.6-4 6.1-.6z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-    </svg>
-  );
+function formatEuro(value) {
+  return Number(value).toLocaleString('fr-FR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
-// Calcule les variations (%) entre la période choisie et la précédente
-function computeDeltas(orders, days) {
-  const window = days * DAY_MS;
-  const now = Date.now();
-  let curRevenue = 0;
-  let prevRevenue = 0;
-  let curCount = 0;
-  let prevCount = 0;
+// ---- Données ----
 
-  for (const order of orders) {
-    if (order.status === 'CANCELLED') continue;
-    const age = now - new Date(order.createdAt).getTime();
-    if (age <= window) {
-      curRevenue += Number(order.total);
-      curCount += 1;
-    } else if (age <= 2 * window) {
-      prevRevenue += Number(order.total);
-      prevCount += 1;
-    }
-  }
-
-  const pct = (cur, prev) =>
-    prev > 0 ? Math.round(((cur - prev) / prev) * 100) : cur > 0 ? null : 0;
-
-  return { revenueDelta: pct(curRevenue, prevRevenue), ordersDelta: pct(curCount, prevCount) };
-}
-
-// Série de revenus par jour sur la période (jours sans vente = 0)
-function buildRevenueSeries(orders, days) {
+// Série jour par jour : revenus + nombre de commandes sur la période
+function buildRevOrdersSeries(orders, days) {
   const today = new Date();
   const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (days - 1));
   const keyOf = (d) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-  const totals = new Map();
+  const revenues = new Map();
+  const counts = new Map();
   for (const order of orders) {
     if (order.status === 'CANCELLED') continue;
     const k = keyOf(new Date(order.createdAt));
-    totals.set(k, (totals.get(k) || 0) + Number(order.total));
+    revenues.set(k, (revenues.get(k) || 0) + Number(order.total));
+    counts.set(k, (counts.get(k) || 0) + 1);
   }
 
-  const series = [];
+  const out = [];
   for (let i = 0; i < days; i++) {
     const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
-    series.push({
+    const k = keyOf(d);
+    out.push({
+      key: k,
       label: d.getDate(),
-      shortMonth: d.toLocaleDateString('fr-FR', { month: 'short' }),
-      total: totals.get(keyOf(d)) ?? 0,
+      tooltip: d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
+      revenue: revenues.get(k) ?? 0,
+      orders: counts.get(k) ?? 0,
     });
   }
-  return series;
+  return out;
 }
 
-// Répartition du chiffre d'affaires par catégorie (à partir des commandes,
-// catégorie retrouvée via le catalogue si absente du serveur)
+// Répartition du chiffre d'affaires par catégorie
 function buildCategoryRevenue(orders, productById) {
   const map = new Map();
   for (const order of orders) {
@@ -120,158 +86,101 @@ function buildCategoryRevenue(orders, productById) {
   return [...map.entries()].sort((a, b) => b[1] - a[1]);
 }
 
-// Stock total par catégorie (à partir du catalogue)
-function buildStockByCategory(products) {
-  const map = new Map();
-  for (const product of products) {
-    map.set(product.category, (map.get(product.category) || 0) + Number(product.stock));
-  }
-  return [...map.entries()].sort((a, b) => b[1] - a[1]);
-}
+// ---- Petits composants visuels ----
 
-// Courbe de chiffre d'affaires en SVG pur
-function RevenueChart({ series }) {
-  const W = 640;
-  const H = 190;
-  const PAD = 14;
-  const AXIS = 26;
-  const innerW = W - 2 * PAD;
-  const innerH = H - PAD - AXIS;
-  const max = Math.max(...series.map((s) => s.total));
+// Donut de stock texturé (motifs SVG : plein, rayures, pois)
+const STOCK_PATTERNS = (
+  <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true" focusable="false">
+    <defs>
+      <pattern id="p-stripes" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <rect width="7" height="7" fill="transparent" />
+        <rect width="3" height="7" fill="#1A1A1A" />
+      </pattern>
+      <pattern id="p-dots" width="9" height="9" patternUnits="userSpaceOnUse">
+        <rect width="9" height="9" fill="transparent" />
+        <circle cx="2.4" cy="2.4" r="1.7" fill="#1A1A1A" />
+      </pattern>
+      <pattern id="p-stripes-gray" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
+        <rect width="7" height="7" fill="transparent" />
+        <rect width="3" height="7" fill="#8C9690" />
+      </pattern>
+    </defs>
+  </svg>
+);
 
-  if (!max) {
-    return (
-      <div className="chart__empty">
-        Aucune vente sur cette période. Les revenus apparaîtront ici dès la première commande.
-      </div>
-    );
-  }
-
-  const n = series.length;
-  const X = (i) => (n <= 1 ? PAD + innerW / 2 : PAD + (i * innerW) / (n - 1));
-  const Y = (v) => PAD + innerH - (v / max) * innerH;
-  const baseline = PAD + innerH;
-
-  const linePoints = series.map((s, i) => `${X(i)},${Y(s.total)}`).join(' ');
-  const areaPoints = `${X(0)},${baseline} ${linePoints} ${X(n - 1)},${baseline}`;
-  const xStep = Math.max(1, Math.ceil(n / 8));
-  const showLabel = (i) => n <= 12 || i % 2 === 0;
-
+// Carte statistique pastel (une couleur par carte)
+function StatCard({ tone, icon, label, value, sub, link }) {
   return (
-    <svg
-      className="chart"
-      viewBox={`0 0 ${W} ${H}`}
-      role="img"
-      aria-label="Courbe du chiffre d'affaires quotidien"
-    >
-      <defs>
-        <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--gold)" stopOpacity="0.28" />
-          <stop offset="100%" stopColor="var(--gold)" stopOpacity="0.02" />
-        </linearGradient>
-      </defs>
-
-      {[0.25, 0.5, 0.75, 1].map((f) => (
-        <line
-          key={f}
-          x1={PAD}
-          x2={W - PAD}
-          y1={Y(max * f)}
-          y2={Y(max * f)}
-          className="chart__grid"
-        />
-      ))}
-
-      <polygon points={areaPoints} fill="url(#chartFill)" />
-      <polyline points={linePoints} fill="none" className="chart__line" vectorEffect="non-scaling-stroke" />
-
-      {series.map((s, i) => (
-        <circle key={i} cx={X(i)} cy={Y(s.total)} r="3.5" className="chart__dot">
-          <title>{`${s.label} ${s.shortMonth} — ${s.total.toLocaleString('fr-FR')} €`}</title>
-        </circle>
-      ))}
-
-      {series.map((s, i) =>
-        i % xStep === 0 && showLabel(i) ? (
-          <text key={`x${i}`} x={X(i)} y={H - 8} className="chart__xlabel" textAnchor="middle">
-            {n <= 31 ? s.label : `${s.label} ${s.shortMonth}`}
-          </text>
-        ) : null
-      )}
-
-      <text x={W - PAD} y={Y(max) - 6} className="chart__ylabel" textAnchor="end">
-        {max.toLocaleString('fr-FR')} €
-      </text>
-    </svg>
-  );
-}
-
-// Donut de livraison (part des commandes livrées)
-function RetentionDonut({ ratio }) {
-  const R = 30;
-  const C = 2 * Math.PI * R;
-  const pct = Math.round(ratio * 100);
-  return (
-    <div className="dash-donut">
-      <svg viewBox="0 0 84 84" aria-hidden="true">
-        <circle cx="42" cy="42" r={R} fill="none" className="dash-donut__track" />
-        <circle
-          cx="42"
-          cy="42"
-          r={R}
-          fill="none"
-          className="dash-donut__value"
-          strokeDasharray={C}
-          strokeDashoffset={C * (1 - ratio)}
-          transform="rotate(-90 42 42)"
-        />
-      </svg>
-      <div className="dash-donut__center">
-        <strong>{pct}%</strong>
-        <span>livrées</span>
+    <div className={`dash-stat dash-stat--${tone}`}>
+      <div className="dash-stat__head">
+        <span className="dash-stat__icon">{icon}</span>
+        {link && (
+          <Link to={link} className="dash-stat__link" title="Voir détail" aria-label="Voir détail">
+            ↗
+          </Link>
+        )}
       </div>
+      <strong className="dash-stat__value">{value}</strong>
+      <span className="dash-stat__label">{label}</span>
+      <span className="dash-stat__sub">{sub}</span>
     </div>
   );
 }
 
-function formatEuro(value) {
-  return Number(value).toLocaleString('fr-FR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+// Info-bulle flottante du graphique (carte sombre)
+function ChartTip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  const tip = payload[0]?.payload;
+  return (
+    <div className="dash-chart__tip">
+      <strong>{tip?.tooltip ?? label}</strong>
+      <span className="dash-chart__tip-row">
+        <i className="is-rev" /> Revenue : <b>{formatEuro(tip?.revenue ?? 0)} €</b>
+      </span>
+      <span className="dash-chart__tip-row">
+        <i className="is-orders" /> Orders : <b>{tip?.orders ?? 0}</b>
+      </span>
+    </div>
+  );
+}
+
+// Mini barres texturées (complétées / en livraison / en attente / annulées)
+function MiniBars({ data }) {
+  const max = Math.max(1, ...data.map((d) => d.value));
+  return (
+    <div className="dash-minibars">
+      {data.map((d) => (
+        <div className="dash-minibar" key={d.label}>
+          <strong className="dash-minibar__value">{d.value}</strong>
+          <div className="dash-minibar__track">
+            <span
+              className={`dash-minibar__bar ${d.cls}`}
+              style={{ height: `${Math.max(7, Math.round((d.value / max) * 100))}%` }}
+            />
+          </div>
+          <span className="dash-minibar__label">{d.label}</span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 // Squelettes affichés pendant le chargement
 function DashboardSkeleton() {
   return (
     <>
-      <div className="skeleton__block skeleton__block--wide" />
-      <section className="admin__cards">
+      <div className="skeleton__block" style={{ width: '60%', height: 30 }} />
+      <section className="dash-stats">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div className="admin__card" key={i}>
-            <div className="skeleton__block" style={{ width: 36, height: 36, borderRadius: 12 }} />
-            <div className="skeleton__block" style={{ width: '55%', height: 12, marginTop: 10 }} />
-            <div className="skeleton__block" style={{ width: '80%', height: 28, marginTop: 6 }} />
+          <div className="dash-stat dash-stat--white" key={i}>
+            <div className="skeleton__block" style={{ width: 80, height: 46, borderRadius: 10 }} />
+            <div className="skeleton__block" style={{ width: '55%', height: 14, marginTop: 14 }} />
           </div>
         ))}
       </section>
-      <section className="admin__dash-split">
-        <div className="admin__panel">
-          <div className="skeleton__block" style={{ width: 190, height: 22 }} />
-          <div className="skeleton__block" style={{ width: '100%', height: 170, marginTop: 18 }} />
-        </div>
-        <div className="admin__panel">
-          <div className="skeleton__block" style={{ width: 160, height: 22 }} />
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div className="skeleton__block" key={i} style={{ width: '100%', height: 40, marginTop: 14 }} />
-          ))}
-        </div>
-      </section>
-      <section className="admin__panel">
-        <div className="skeleton__block" style={{ width: 200, height: 22 }} />
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div className="skeleton__block" key={i} style={{ width: '100%', height: 40, marginTop: 14 }} />
-        ))}
+      <section className="dash-row dash-row--main">
+        <div className="skeleton__block" style={{ width: '100%', height: 340, borderRadius: 28 }} />
+        <div className="skeleton__block" style={{ width: '100%', height: 340, borderRadius: 28 }} />
       </section>
     </>
   );
@@ -286,7 +195,6 @@ export default function Dashboard() {
   const [period, setPeriod] = useState('30');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [now, setNow] = useState(new Date());
 
   useEffect(() => {
     Promise.all([getStats(token), getAllOrders(token), getProducts({})])
@@ -299,50 +207,74 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, [token]);
 
-  // Horloge de la carte de bienvenue (mise à jour toutes les 30 s)
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 30000);
-    return () => clearInterval(id);
-  }, []);
-
   const days = Number(period) || 30;
-  const deltas = useMemo(() => computeDeltas(orders, days), [orders, days]);
-  const revenueSeries = useMemo(() => buildRevenueSeries(orders, days), [orders, days]);
+  const revOrdersSeries = useMemo(() => buildRevOrdersSeries(orders, days), [orders, days]);
   const productById = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
   const categoryRevenue = useMemo(
     () => buildCategoryRevenue(orders, productById),
     [orders, productById]
   );
-  const stockByCategory = useMemo(() => buildStockByCategory(products), [products]);
 
   const lastOrders = orders.slice(0, 5);
   const lowStock = products
     .filter((p) => p.stock <= LOW_STOCK_LIMIT)
     .sort((a, b) => a.stock - b.stock)
     .slice(0, 6);
-  const topSoldMax = stats?.topProducts?.length
-    ? Math.max(...stats.topProducts.map((p) => p.quantitySold))
-    : 1;
   const categoryMax = Math.max(1, ...categoryRevenue.map(([, v]) => v));
-  const stockMax = Math.max(1, ...stockByCategory.map(([, v]) => v));
+  const categoryTotal = categoryRevenue.reduce((s, [, v]) => s + v, 0);
 
-  const periodRevenue = revenueSeries.reduce((s, d) => s + d.total, 0);
-  const periodOrders = orders.filter((o) => {
-    if (o.status === 'CANCELLED') return false;
-    return Date.now() - new Date(o.createdAt).getTime() <= days * DAY_MS;
-  }).length;
+  const periodRevenue = revOrdersSeries.reduce((s, d) => s + d.revenue, 0);
+  const todayRevenue = revOrdersSeries.at(-1)?.revenue ?? 0;
+  const todayOrders = revOrdersSeries.at(-1)?.orders ?? 0;
+
+  const cancelledOrders = orders.filter((o) => o.status === 'CANCELLED');
+  const cancelledTotal = cancelledOrders.reduce((s, o) => s + Number(o.total), 0);
 
   const activeOrders = orders.filter((o) => o.status !== 'CANCELLED');
-  const ratio =
-    orders.length > 0
-      ? activeOrders.length / orders.length
-      : 0;
+  const ratio = orders.length > 0 ? activeOrders.length / orders.length : 0;
 
-  // Produits les plus vendus : on complète avec le prix du catalogue
+  // Barres de la carte "Commandes"
+  const orderBars = useMemo(() => {
+    const count = (status) => orders.filter((o) => o.status === status).length;
+    return [
+      { label: 'Complétées', value: count('DELIVERED'), cls: 'is-solid' },
+      { label: 'En livraison', value: count('SHIPPED'), cls: 'is-stripes' },
+      { label: 'En attente', value: count('PENDING'), cls: 'is-dots' },
+      { label: 'Annulées', value: count('CANCELLED'), cls: 'is-light' },
+    ];
+  }, [orders]);
+
+  // Répartition du stock en 4 états (textures distinctes)
+  const stockBuckets = useMemo(() => {
+    const orderedIds = new Set(
+      orders.flatMap((o) => (o.status === 'CANCELLED' ? [] : (o.items ?? []).map((it) => it.productId)))
+    );
+    const inc = (map, key) => map.set(key, (map.get(key) || 0) + 1);
+    const acc = new Map();
+    for (const p of products) {
+      if (p.stock > LOW_STOCK_LIMIT) inc(acc, 'ok');
+      else if (p.stock > 0) inc(acc, 'low');
+      else if (orderedIds.has(p.id)) inc(acc, 'out');
+      else inc(acc, 'dead');
+    }
+    const v = (k) => acc.get(k) ?? 0;
+    return [
+      { label: 'En stock', value: v('ok'), fill: '#1A1A1A' },
+      { label: 'Stock faible', value: v('low'), fill: 'url(#p-stripes)' },
+      { label: 'Rupture', value: v('out'), fill: 'url(#p-dots)' },
+      { label: 'Stock mort', value: v('dead'), fill: 'url(#p-stripes-gray)' },
+    ];
+  }, [orders, products]);
+  const stockTotal = stockBuckets.reduce((s, b) => s + b.value, 0);
+
+  // Produits les plus vendus : complétés avec le prix du catalogue
   const topProductsEnriched = (stats?.topProducts ?? []).map((p) => {
     const catalog = products.find((x) => x.id === p.productId);
     return { ...p, price: catalog?.price };
   });
+  const topSoldMax = topProductsEnriched.length
+    ? Math.max(...topProductsEnriched.map((p) => p.quantitySold))
+    : 1;
 
   if (loading) {
     return (
@@ -357,94 +289,213 @@ export default function Dashboard() {
     (user?.email ? user.email.charAt(0).toUpperCase() + user.email.slice(1, user.email.indexOf('@')) : 'Admin');
   const avatarInitial = (user?.name || user?.email || 'A').charAt(0).toUpperCase();
 
-  const cards = stats
-    ? [
-        {
-          key: 'revenus',
-          icon: 'revenus',
-          label: 'Revenus totaux',
-          value: `${formatEuro(stats.totalRevenue)} €`,
-          delta: deltas.revenueDelta,
-          sub: `vs ${days} derniers jours`,
-        },
-        {
-          key: 'commandes',
-          icon: 'commandes',
-          label: 'Commandes',
-          value: String(stats.ordersCount),
-          delta: deltas.ordersDelta,
-          sub: `vs ${days} derniers jours`,
-        },
-        {
-          key: 'stock',
-          icon: 'stock',
-          label: 'Produits en stock',
-          value: String(stats.stockCount),
-          sub: 'unités disponibles',
-        },
-        {
-          key: 'note',
-          icon: 'note',
-          label: 'Note moyenne',
-          value: stats.avgRating ? stats.avgRating.toFixed(1) : '—',
-          sub: `${stats.topRated.reduce((s, p) => s + p.reviewCount, 0)} avis clients`,
-        },
-      ]
-    : [];
+  const icons = {
+    sales: (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.6" />
+        <path d="M15.5 9.5c-.5-1.2-1.7-2-3-2a2.7 2.7 0 1 0 0 5.4 2.7 2.7 0 1 1 0 5.4c-1.3 0-2.5-.8-3-2M12 6.5v2M12 14.5v2.4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      </svg>
+    ),
+    orders: (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 6h16M7 6V4.5A1.5 1.5 0 0 1 8.5 3h7A1.5 1.5 0 0 1 17 4.5V6M6 6l1 13a1.8 1.8 0 0 0 1.8 1.6h6.4A1.8 1.8 0 0 0 17 19l1-13" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      </svg>
+    ),
+    users: (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="9" cy="8" r="3.4" fill="none" stroke="currentColor" strokeWidth="1.6" />
+        <path d="M2.8 19.2c.9-3 3.3-4.6 6.2-4.6s5.3 1.6 6.2 4.6M16.2 5.2a3.2 3.2 0 0 1 0 5.7M18 14.9c1.4.7 2.6 2 3.2 4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      </svg>
+    ),
+    refund: (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 6h16M7 6V4.5A1.5 1.5 0 0 1 8.5 3h7A1.5 1.5 0 0 1 17 4.5V6M6 6l1 13a1.8 1.8 0 0 0 1.8 1.6h6.4A1.8 1.8 0 0 0 17 19l1-13" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        <path d="M9 13.5l2 2 4-4.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+    calendar: (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3.5" y="5" width="17" height="15" rx="3" fill="none" stroke="currentColor" strokeWidth="1.6" />
+        <path d="M3.5 9.5h17M8 3v4M16 3v4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      </svg>
+    ),
+  };
 
   return (
     <div className="admin">
       {error && <p className="auth__error">{error}</p>}
 
-      {/* ---------- Carte de bienvenue ---------- */}
-      <section className="dash-welcome">
-        <div className="dash-welcome__left">
-          <span className="dash-welcome__avatar">{avatarInitial}</span>
-          <div>
-            <p className="dash-welcome__hello">Bon retour, {firstName}</p>
-            <p className="dash-welcome__sub">Espace administrateur · ShopCraft</p>
+      {STOCK_PATTERNS}
+
+      {/* ---------- Hero jaune : bienvenue + période ---------- */}
+      <section className="dash-hero">
+        <div className="dash-hero__left">
+          <span className="dash-hero__avatar">{avatarInitial}</span>
+          <div className="dash-hero__text">
+            <h1 className="dash-hero__title">
+              Bonjour {firstName}, voici ce qui se passe dans votre boutique.
+            </h1>
+            <p className="dash-hero__sub">
+              {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </p>
           </div>
         </div>
-        <div className="dash-welcome__right">
-          <p className="dash-welcome__time">
-            {now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-          </p>
-          <p className="dash-welcome__date">
-            {now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </p>
+        <div className="dash-hero__pills" role="group" aria-label="Période affichée">
+          {PERIODS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              className={`dash-pill ${period === opt.value ? 'is-active' : ''}`}
+              onClick={() => setPeriod(opt.value)}
+            >
+              {icons.calendar}
+              {opt.label}
+            </button>
+          ))}
         </div>
       </section>
 
-      {/* ---------- Cartes statistiques ---------- */}
-      <section className="admin__cards">
-        {cards.map((card) => (
-          <div className="admin__card" key={card.key}>
-            <div className="admin__card-top">
-              <span className="admin__card-icon">
-                <CardIcon type={card.icon} />
-              </span>
-              {card.delta !== null && card.delta !== undefined && (
-                <span
-                  className={`admin__card-delta ${card.delta >= 0 ? 'admin__card-delta--up' : 'admin__card-delta--down'}`}
-                  title={card.delta >= 0 ? 'Hausse' : 'Baisse'}
-                >
-                  {card.delta >= 0 ? '▲' : '▼'} {Math.abs(card.delta)} %
-                </span>
-              )}
+      {/* ---------- Cartes statistiques pastel ---------- */}
+      <section className="dash-stats">
+        <StatCard
+          tone="yellow"
+          icon={icons.sales}
+          label="Ventes totales"
+          value={`${formatEuro(stats?.totalRevenue ?? 0)} €`}
+          sub={`${todayRevenue ? `+${formatEuro(todayRevenue)} €` : '0,00 €'} aujourd'hui`}
+          link="/admin/orders"
+        />
+        <StatCard
+          tone="blue"
+          icon={icons.orders}
+          label="Total commandes"
+          value={String(stats?.ordersCount ?? 0)}
+          sub={`+${todayOrders} aujourd'hui`}
+        />
+        <StatCard
+          tone="green"
+          icon={icons.users}
+          label="Clients"
+          value={String(stats?.usersCount ?? 0)}
+          sub={`${Math.round(ratio * 100)} % de commandes abouties`}
+        />
+        <StatCard
+          tone="white"
+          icon={icons.refund}
+          label="Remboursés"
+          value={String(cancelledOrders.length)}
+          sub={`${formatEuro(cancelledTotal)} € annulés`}
+        />
+      </section>
+
+      {/* ---------- Revenus vs commandes + commandes complétées ---------- */}
+      <section className="dash-row dash-row--main">
+        <div className="dash-card dash-card--blue">
+          <div className="dash-card__head">
+            <div>
+              <h2 className="dash-card__title">Revenus vs Commandes</h2>
+              <p className="dash-card__sub">
+                {periodRevenue ? `${formatEuro(periodRevenue)} €` : 'Aucun revenu'} sur {days} jours
+              </p>
             </div>
-            <span className="admin__card-label">{card.label}</span>
-            <span className="admin__card-value">{card.value}</span>
-            {card.sub && <span className="admin__card-sub">{card.sub}</span>}
+            <div className="dash-legend">
+              <span className="dash-legend__item">
+                <i className="dash-legend__dot is-rev" /> Revenue
+              </span>
+              <span className="dash-legend__item">
+                <i className="dash-legend__dot is-orders" /> Orders
+              </span>
+            </div>
           </div>
-        ))}
+
+          <div className="dash-chart">
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={revOrdersSeries} margin={{ top: 8, right: 8, bottom: 0, left: -8 }}>
+                <CartesianGrid stroke="#C6CFD7" strokeDasharray="3 8" vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fill: '#5F6B75', fontSize: 12, fontFamily: 'Inter' }}
+                  tickLine={false}
+                  axisLine={false}
+                  minTickGap={32}
+                />
+                <YAxis
+                  tick={{ fill: '#5F6B75', fontSize: 12, fontFamily: 'Inter' }}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(v % 1000 ? 1 : 0)}k` : v)}
+                />
+                <Tooltip content={<ChartTip />} cursor={{ stroke: '#1A1A1A', strokeDasharray: '4 4' }} />
+                <Line
+                  type="monotone"
+                  dataKey="revenue"
+                  name="Revenue"
+                  stroke="#1A1A1A"
+                  strokeWidth={2.6}
+                  strokeDasharray="7 6"
+                  dot={false}
+                  activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff' }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="orders"
+                  name="Orders"
+                  stroke="#6E7C88"
+                  strokeWidth={2.4}
+                  strokeDasharray="2 6"
+                  dot={false}
+                  activeDot={{ r: 5, strokeWidth: 2, stroke: '#D4DCE3' }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="dash-card dash-card--blue">
+          <div className="dash-card__head">
+            <div>
+              <h2 className="dash-card__title">Commandes complétées</h2>
+              <p className="dash-card__sub">Répartition par statut</p>
+            </div>
+            <span className="dash-chip">{stats?.ordersCount ?? 0} au total</span>
+          </div>
+
+          <MiniBars data={orderBars} />
+
+          <h3 className="dash-mini-title">Chiffre d'affaires par catégorie</h3>
+          <ul className="dash-bars">
+            {categoryRevenue.length === 0 && (
+              <li className="home__message dash-bars__empty">Aucune donnée pour le moment.</li>
+            )}
+            {categoryRevenue.map(([category, value]) => (
+              <li className="dash-bar" key={category}>
+                <span className="dash-bar__label">{category}</span>
+                <div className="dash-bar__track">
+                  <span
+                    className="dash-bar__fill"
+                    style={{ width: `${Math.round((value / categoryMax) * 100)}%` }}
+                  />
+                </div>
+                <strong className="dash-bar__value">{formatEuro(value)} €</strong>
+              </li>
+            ))}
+            {categoryRevenue.length > 0 && (
+              <li className="dash-bar dash-bar--total">
+                <span className="dash-bar__label">Total</span>
+                <div className="dash-bar__track" />
+                <strong className="dash-bar__value">{formatEuro(categoryTotal)} €</strong>
+              </li>
+            )}
+          </ul>
+        </div>
       </section>
 
-      {/* ---------- Meilleures ventes + aperçu clients ---------- */}
-      <section className="admin__dash-split">
-        <div className="admin__panel">
-          <div className="admin__panel-head">
-            <h2 className="admin__panel-title admin__panel-title--inline">Meilleures ventes</h2>
-            <Link to="/admin/products" className="admin__link">
+      {/* ---------- Meilleures ventes + stock ---------- */}
+      <section className="dash-row dash-row--second">
+        <div className="dash-card dash-card--white">
+          <div className="dash-card__head">
+            <h2 className="dash-card__title">Meilleures ventes</h2>
+            <Link to="/admin/products" className="dash-card__link">
               Voir tout →
             </Link>
           </div>
@@ -468,6 +519,12 @@ export default function Dashboard() {
                     <span className="dash-best__meta">
                       {product.price ? `${formatEuro(product.price)} €` : '—'}
                     </span>
+                    <span className="dash-best__bar-wrap">
+                      <span
+                        className="dash-best__bar"
+                        style={{ width: `${Math.max(6, Math.round((product.quantitySold / topSoldMax) * 100))}%` }}
+                      />
+                    </span>
                   </div>
                   <span className="dash-best__sales">
                     {product.quantitySold} {product.quantitySold > 1 ? 'ventes' : 'vente'}
@@ -478,132 +535,88 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className="admin__panel">
-          <h2 className="admin__panel-title">Aperçu clients</h2>
-          <div className="dash-client">
-            <RetentionDonut ratio={ratio} />
-            <div className="dash-client__notes">
-              <p>
-                <strong>{stats.usersCount}</strong> client{stats.usersCount > 1 ? 's' : ''} inscrit
-                {stats.usersCount > 1 ? 's' : ''}
-              </p>
-              <p>
-                <strong>{Math.round(ratio * 100)} %</strong> de commandes non annulées
-              </p>
-            </div>
+        <div className="dash-card dash-card--green">
+          <div className="dash-card__head">
+            <h2 className="dash-card__title">Stock / Inventaire</h2>
+            <span className="dash-chip dash-chip--dark">{stockTotal} produits</span>
           </div>
-          <h3 className="dash-sub">Chiffre d'affaires par catégorie</h3>
-          <ul className="dash-bars">
-            {categoryRevenue.length === 0 && (
-              <li className="home__message home__message--bare">Aucune donnée pour le moment.</li>
-            )}
-            {categoryRevenue.map(([category, value]) => (
-              <li className="dash-bar" key={category}>
-                <span className="dash-bar__label">{category}</span>
-                <div className="dash-bar__track">
-                  <span
-                    className="dash-bar__fill"
-                    style={{ width: `${Math.round((value / categoryMax) * 100)}%` }}
-                  />
-                </div>
-                <strong className="dash-bar__value">{formatEuro(value)} €</strong>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
 
-      {/* ---------- Aperçu des commandes + stock ---------- */}
-      <section className="admin__dash-split">
-        <div className="admin__panel">
-          <div className="admin__panel-head">
-            <div>
-              <h2 className="admin__panel-title admin__panel-title--inline">
-                Aperçu des commandes
-              </h2>
-              <p className="admin__panel-sub">
-                {periodOrders} commande{periodOrders > 1 ? 's' : ''} ·{' '}
-                <strong>{formatEuro(periodRevenue)} €</strong> sur {days} jours
-              </p>
-            </div>
-            <label className="admin__filter-wrap">
-              <span className="admin__filter-label">Période</span>
-              <select
-                className="admin__filter"
-                value={period}
-                onChange={(e) => setPeriod(e.target.value)}
-              >
-                {PERIODS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <div className="chart__wrap">
-            <RevenueChart series={revenueSeries} />
-          </div>
-        </div>
-
-        <div className="admin__panel">
-          <div className="admin__panel-head">
-            <h2 className="admin__panel-title admin__panel-title--inline">Stock / Inventaire</h2>
-            {lowStock.length > 0 && <span className="admin__alert-count">{lowStock.length}</span>}
-          </div>
-          <div className="dash-stock">
-            <p className="dash-sub">Unités par catégorie</p>
-            <div className="dash-stockchart" role="img" aria-label="Répartition du stock par catégorie">
-              {stockByCategory.map(([category, value]) => (
-                <div className="dash-stockchart__col" key={category}>
-                  <span
-                    className="dash-stockchart__bar"
-                    style={{ height: `${Math.max(6, Math.round((value / stockMax) * 100))}%` }}
-                    title={`${category} — ${value} unités`}
+          <div className="dash-stockbox">
+            <div className="dash-donut-wrap">
+              <ResponsiveContainer width="100%" height={170}>
+                <PieChart>
+                  <Pie
+                    data={stockBuckets}
+                    dataKey="value"
+                    nameKey="label"
+                    innerRadius="60%"
+                    outerRadius="88%"
+                    paddingAngle={3}
+                    stroke="none"
+                  >
+                    {stockBuckets.map((bucket) => (
+                      <Cell key={bucket.label} fill={bucket.fill} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: 12,
+                      border: 'none',
+                      fontSize: 13,
+                      boxShadow: '0 8px 20px rgba(0,0,0,0.12)',
+                    }}
                   />
-                  <span className="dash-stockchart__label" title={category}>
-                    {category.slice(0, 6)}
-                  </span>
-                </div>
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="dash-donut__center">
+                <strong>{stockTotal}</strong>
+                <span>unités</span>
+              </div>
+            </div>
+
+            <ul className="dash-legend-list">
+              {stockBuckets.map((bucket) => (
+                <li key={bucket.label}>
+                  <i
+                    className="dash-legend-swatch"
+                    style={{ background: bucket.fill }}
+                  />
+                  <span>{bucket.label}</span>
+                  <b>{bucket.value}</b>
+                </li>
               ))}
-            </div>
-
-            <h3 className="dash-sub">Alertes stock faible</h3>
-            {lowStock.length === 0 && (
-              <p className="home__message">Aucun produit en stock faible.</p>
-            )}
-            {lowStock.length > 0 && (
-              <ul className="admin__alerts">
-                {lowStock.map((product) => (
-                  <li className="admin__alert-item" key={product.id}>
-                    <span className="admin__alert-name">{product.name}</span>
-                    <span
-                      className={`admin__stock ${product.stock === 0 ? 'admin__stock--out' : 'admin__stock--low'}`}
-                    >
-                      {product.stock === 0
-                        ? 'Rupture'
-                        : `${product.stock} restant${product.stock > 1 ? 's' : ''}`}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
+            </ul>
           </div>
+
+          <h3 className="dash-mini-title">Alertes stock faible</h3>
+          {lowStock.length === 0 && <p className="home__message">Aucun produit en stock faible.</p>}
+          {lowStock.length > 0 && (
+            <ul className="admin__alerts">
+              {lowStock.map((product) => (
+                <li className="admin__alert-item" key={product.id}>
+                  <span className="admin__alert-name">{product.name}</span>
+                  <span
+                    className={`admin__stock ${product.stock === 0 ? 'admin__stock--out' : 'admin__stock--low'}`}
+                  >
+                    {product.stock === 0 ? 'Rupture' : `${product.stock} restant${product.stock > 1 ? 's' : ''}`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </section>
 
       {/* ---------- Commandes récentes ---------- */}
-      <section className="admin__panel">
-        <div className="admin__panel-head">
-          <h2 className="admin__panel-title admin__panel-title--inline">Commandes récentes</h2>
-          <Link to="/admin/orders" className="admin__link">
+      <section className="dash-card dash-card--white">
+        <div className="dash-card__head">
+          <h2 className="dash-card__title">Commandes récentes</h2>
+          <Link to="/admin/orders" className="dash-card__link">
             Voir toutes →
           </Link>
         </div>
 
-        {lastOrders.length === 0 && (
-          <p className="home__message">Aucune commande pour le moment.</p>
-        )}
+        {lastOrders.length === 0 && <p className="home__message">Aucune commande pour le moment.</p>}
 
         {lastOrders.length > 0 && (
           <div className="admin__table-wrap">
@@ -625,9 +638,7 @@ export default function Dashboard() {
                     <td>{new Date(order.createdAt).toLocaleDateString('fr-FR')}</td>
                     <td>{Number(order.total).toFixed(2)} €</td>
                     <td>
-                      <span
-                        className={`order__status order__status--${order.status.toLowerCase()}`}
-                      >
+                      <span className={`order__status order__status--${order.status.toLowerCase()}`}>
                         {STATUS_LABELS[order.status] ?? order.status}
                       </span>
                     </td>
