@@ -6388,3 +6388,208 @@ code {
     border-radius: 22px;
   }
 }
+
+/* =========================================================
+   THEME PASTEL — PAGE COMMANDES (step 6)
+   Onglets statut, filtre période, select statut pilule
+   et modal détail commande. Scope : .admin-layout.
+   ========================================================= */
+
+.admin__filter-wrap {
+  margin-left: auto;
+}
+
+.admin__filter-label {
+  color: var(--pastel-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.admin__filter {
+  padding: 9px 14px;
+  border: 1px solid var(--pastel-line);
+  border-radius: 14px;
+  background: var(--pastel-white);
+  color: var(--pastel-ink);
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.admin__filter:focus {
+  outline: none;
+  border-color: var(--pastel-ink);
+}
+
+.admin__tab {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--pastel-line);
+  background: var(--pastel-white);
+  color: var(--pastel-muted);
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.admin__tab:hover {
+  border-color: rgba(26, 26, 26, 0.35);
+  color: var(--pastel-ink);
+}
+
+.admin__tab.is-active {
+  background: var(--pastel-ink);
+  border-color: var(--pastel-ink);
+  color: #fff;
+}
+
+/* Select statut en pilule : mêmes couleurs que les badges pastel */
+.admin-layout .admin__status--pill {
+  padding: 5px 13px;
+  padding-right: 26px;
+  font-weight: 600;
+}
+
+.admin-layout .admin__status--pending {
+  background: var(--pastel-yellow);
+  color: #6B5700;
+  text-decoration: none;
+}
+
+.admin-layout .admin__status--shipped {
+  background: #C7D9EE;
+  color: #2F5E8C;
+  text-decoration: none;
+}
+
+.admin-layout .admin__status--delivered {
+  background: var(--pastel-green);
+  color: #3A6B45;
+  text-decoration: none;
+}
+
+.admin-layout .admin__status--cancelled {
+  background: #EAEAE7;
+  color: #6B6B68;
+}
+
+/* Modal détail commande */
+.order-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.order-detail__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.order-detail__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: #FAFAF7;
+  border: 1px solid var(--pastel-line);
+  min-width: 0;
+}
+
+.order-detail__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pastel-muted);
+}
+
+.order-detail__value {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--pastel-ink);
+  word-break: break-word;
+}
+
+.order-detail__value--total {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.order-detail__sub {
+  margin: 2px 0 10px;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--pastel-ink);
+}
+
+.order-detail__items {
+  list-style: none;
+  margin: 0;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #FAFAF7;
+  border-radius: 18px;
+  border: 1px solid var(--pastel-line);
+}
+
+.order-detail__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.order-detail__thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.order-detail__thumb--empty {
+  background: var(--pastel-line);
+}
+
+.order-detail__item-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.order-detail__item-name a {
+  color: var(--pastel-ink);
+  text-decoration: none;
+}
+
+.order-detail__item-name a:hover {
+  text-decoration: underline;
+}
+
+.order-detail__item-qty {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--pastel-muted);
+  white-space: nowrap;
+}
+
+/* Responsive détail commande */
+@media (max-width: 480px) {
+  .order-detail__grid {
+    grid-template-columns: 1fr;
+  }
+}
