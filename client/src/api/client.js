@@ -199,3 +199,60 @@ export function getStats(token) {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
+
+// ---------- Support (aide) & Notifications ----------
+
+// L'utilisateur envoie un problème. data : { subject, message }
+export function createTicket(token, data) {
+  return request('/support/tickets', {
+    method: 'POST',
+    body: JSON.stringify(data),
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+// Tickets de l'utilisateur connecté
+export function getMyTickets(token) {
+  return request('/support/tickets/mine', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+// Tous les tickets (admin)
+export function getAllTickets(token) {
+  return request('/support/tickets', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+// Détail d'un ticket (propriétaire ou admin)
+export function getTicket(token, id) {
+  return request(`/support/tickets/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+// Répond à un ticket. body : { message }
+export function replyTicket(token, id, message) {
+  return request(`/support/tickets/${id}/reply`, {
+    method: 'POST',
+    body: JSON.stringify({ message }),
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+// Notifications de l'utilisateur connecté (renvoie { items, unreadCount })
+export function getNotifications(token) {
+  return request('/support/notifications', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+// Marque toutes les notifications comme lues (ou une seule si { id })
+export function markNotificationsRead(token, id = null) {
+  return request('/support/notifications/read', {
+    method: 'PUT',
+    body: JSON.stringify({ ...(id ? { id } : {}) }),
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}

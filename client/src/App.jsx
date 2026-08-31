@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar.jsx';
 import Toast from './components/Toast.jsx';
+import SupportModals from './components/SupportModals.jsx';
 import AdminLayout from './components/AdminLayout.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import AdminRoute from './components/AdminRoute.jsx';
@@ -21,6 +22,7 @@ export default function App() {
     <div className="app">
       <Navbar />
       <Toast />
+      <SupportModals />
       <main className="container">
         <Routes>
           <Route path="/" element={<Home />} />

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useCartStore, selectCartCount } from '../store/cartStore.js';
 import { useAuthStore } from '../store/authStore.js';
+import { useSupportStore } from '../store/notificationStore.js';
+import NotificationsBell from './NotificationsBell.jsx';
 
 // Icône compte / utilisateur (SVG inline)
 function AccountIcon() {
@@ -36,26 +38,11 @@ function CartIcon() {
   );
 }
 
-// Icône notifications (SVG inline)
-function BellIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        d="M6 17v-5a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 // Barre de navigation : logo, recherche centrée, compte + panier, menu mobile
 export default function Navbar() {
   const count = useCartStore(selectCartCount);
   const user = useAuthStore((state) => state.user);
+  const openHelp = useSupportStore((state) => state.openHelp);
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
@@ -119,6 +106,16 @@ export default function Navbar() {
               Dashboard
             </NavLink>
           )}
+          <button
+            type="button"
+            className="navbar__link navbar__link--btn"
+            onClick={() => {
+              closeMenu();
+              openHelp();
+            }}
+          >
+            Aide
+          </button>
           {user ? (
             <Link to="/account" className="navbar__link" onClick={closeMenu}>
               Mon compte
@@ -131,21 +128,11 @@ export default function Navbar() {
         </nav>
 
         <div className="navbar__actions">
+          <NotificationsBell />
           {user && (
-            <>
-              <button
-                type="button"
-                className="navbar__action"
-                aria-label="Notifications"
-                title="Notifications"
-              >
-                <BellIcon />
-                <span className="navbar__dot" aria-hidden="true" />
-              </button>
-              <Link to="/account" className="navbar__action" aria-label="Mon compte" title="Mon compte">
-                <AccountIcon />
-              </Link>
-            </>
+            <Link to="/account" className="navbar__action" aria-label="Mon compte" title="Mon compte">
+              <AccountIcon />
+            </Link>
           )}
           <Link
             to="/cart"

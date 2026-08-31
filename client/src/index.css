@@ -315,18 +315,6 @@ code {
   height: 22px;
 }
 
-/* Point de notification (cloche) */
-.navbar__dot {
-  position: absolute;
-  top: 6px;
-  right: 5px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #E07A5F;
-  border: 2px solid #fff;
-}
-
 /* Badge quantité (animation "pop" via remontage, key={count}) */
 .navbar__badge {
   position: absolute;
@@ -6529,4 +6517,338 @@ code {
   .order-detail__grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ---------- Support : Aide, tickets d'aide & cloche de notifications ---------- */
+
+/* "Aide" dans le menu du site : remet le <button> au format du lien */
+.navbar__link--btn {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding-left: 0;
+  padding-right: 0;
+  background: none;
+  border: none;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.navbar__link--btn:hover {
+  color: var(--accent);
+}
+
+/* "Aide" dans le bandeau admin : format du lien pour un <button> */
+.admin-topbar__link--btn {
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Ancrage de la cloche (panneau positionné sous l'icône) */
+.navbar__bell {
+  position: relative;
+}
+
+/* Panneau de la cloche */
+.support-bell {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 110;
+  width: min(340px, calc(100vw - 40px));
+  max-height: min(70vh, 520px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lift);
+  overflow: hidden;
+  animation: pop-in 0.18s ease;
+}
+
+.support-bell__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.support-bell__title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.support-bell__markall {
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.support-bell__markall:hover {
+  text-decoration: underline;
+}
+
+.support-bell__list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.support-bell__item {
+  width: 100%;
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.support-bell__item:hover {
+  background: var(--bg-soft);
+}
+
+.support-bell__dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.support-bell__item.is-unread .support-bell__dot {
+  background: #E07A5F;
+  box-shadow: 0 0 0 3px rgba(224, 122, 95, 0.18);
+}
+
+.support-bell__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.support-bell__title--item {
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.support-bell__item.is-unread .support-bell__title--item {
+  color: var(--accent);
+}
+
+.support-bell__text {
+  font-size: 0.82rem;
+  color: var(--muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.support-bell__time {
+  font-size: 0.74rem;
+  color: var(--muted-soft, var(--muted));
+}
+
+.support-bell__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.support-bell__empty p {
+  margin: 0;
+}
+
+/* Texte zone de saisie (modale aide / réponse) */
+.support-help__textarea {
+  display: block;
+  width: 100%;
+  min-height: 96px;
+  font-family: inherit;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+/* Statut d'un ticket */
+.support-ticket__status {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.support-ticket__status--open {
+  background: var(--pastel-yellow, #f2ead8);
+  color: var(--pastel-ink, #1a1a1a);
+}
+
+.support-ticket__status--answered {
+  background: #dcead9;
+  color: #3d5c36;
+}
+
+/* Fil de discussion (TicketThreadModal) */
+.support-thread__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.support-thread__list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 45vh;
+  overflow-y: auto;
+  padding: 4px 2px 8px;
+}
+
+.support-thread__msg {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 85%;
+}
+
+.support-thread__msg.is-mine {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.support-thread__meta {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--muted);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.support-thread__time {
+  font-weight: 400;
+  color: var(--muted-soft, var(--muted));
+}
+
+.support-thread__bubble {
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--bg-soft);
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.support-thread__msg.is-mine .support-thread__bubble {
+  background: var(--accent);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.support-thread__msg:not(.is-mine) .support-thread__bubble {
+  border-bottom-left-radius: 4px;
+}
+
+.support-thread__reply {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  margin-top: 6px;
+}
+
+.support-thread__reply .btn {
+  align-self: flex-end;
+}
+
+/* Boîte admin (SupportAdminModal) */
+.support-inbox__empty {
+  padding: 30px 0;
+  text-align: center;
+  color: var(--muted);
+}
+
+.support-inbox__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+
+.support-inbox__item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--pastel-line);
+  border-radius: 14px;
+  background: #F7F7F5;
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.support-inbox__item:hover {
+  background: var(--bg-soft);
+  border-color: var(--pastel-blue);
+}
+
+.support-inbox__main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.support-inbox__subject {
+  font-weight: 600;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.support-inbox__meta {
+  font-size: 0.78rem;
+  color: var(--pastel-muted);
 }

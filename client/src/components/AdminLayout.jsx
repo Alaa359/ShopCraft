@@ -1,6 +1,7 @@
 import { createContext, useContext, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore.js';
+import { useSupportStore } from '../store/notificationStore.js';
 
 // Recherche partagée entre le header admin et les listes des pages
 const AdminSearchContext = createContext({ search: '', setSearch: () => {} });
@@ -59,6 +60,7 @@ const ICONS = {
 // icônes + avatar). Pas de sidebar gauche.
 export default function AdminLayout({ children }) {
   const user = useAuthStore((state) => state.user);
+  const openInbox = useSupportStore((state) => state.openInbox);
   const [search, setSearch] = useState('');
   const initial = (user?.name || user?.email || 'A').charAt(0).toUpperCase();
 
@@ -97,14 +99,15 @@ export default function AdminLayout({ children }) {
               />
             </div>
 
-            <a
-              className="admin-topbar__link"
-              href="mailto:alaameur33@gmail.com?subject=Support ShopCraft"
-              title="Besoin d'aide ?"
+            <button
+              type="button"
+              className="admin-topbar__link admin-topbar__link--btn"
+              title="Demandes d'aide reçues"
+              onClick={openInbox}
             >
               {ICONS.help}
               <span>Aide</span>
-            </a>
+            </button>
 
             <Link to="/account" className="admin-topbar__link" title="Paramètres">
               {ICONS.settings}
