@@ -4,6 +4,7 @@ import { useCartStore, selectCartCount } from '../store/cartStore.js';
 import { useAuthStore } from '../store/authStore.js';
 import { useSupportStore } from '../store/notificationStore.js';
 import NotificationsBell from './NotificationsBell.jsx';
+import ThemeToggle from './ThemeToggle.jsx';
 
 // Icône compte / utilisateur (SVG inline)
 function AccountIcon() {
@@ -116,6 +117,7 @@ export default function Navbar() {
           >
             Aide
           </button>
+          <ThemeToggle />
           {user ? (
             <Link to="/account" className="navbar__link" onClick={closeMenu}>
               Mon compte

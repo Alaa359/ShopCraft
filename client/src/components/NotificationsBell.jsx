@@ -50,7 +50,9 @@ export default function NotificationsBell({ variant = 'nav' }) {
   const openInbox = useSupportStore((state) => state.openInbox);
 
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState(null);
   const boxRef = useRef(null);
+  const btnRef = useRef(null);
   const panelRef = useRef(null);
 
   // Rafraîchit les notifications au changement d'utilisateur, puis toutes les 30 s
@@ -80,9 +82,36 @@ export default function NotificationsBell({ variant = 'nav' }) {
     return () => document.removeEventListener('mousedown', onDocClick);
   }, [open]);
 
-  // À l'ouverture : recharge (le badge peut avoir besoin d'une mise à jour)
+  // Ferme le panneau au défilement (il est positionné en fixed : on évite
+  // qu'il reste « flottant » au mauvais endroit)
+  useEffect(() => {
+    if (!open) return undefined;
+    function onScroll() {
+      setOpen(false);
+    }
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, [open]);
+
+  // À l'ouverture : recharge + calcule la position du panneau sous le bouton.
+  // Le panneau est ancré (fixed) au bouton, sans jamais déborder de l'écran.
   function handleToggle() {
     const next = !open;
+    if (next && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      const panelW = Math.min(340, window.innerWidth - 16);
+      let left = Math.round(rect.right - panelW);
+      if (left < 8) left = 8;
+      setPos({
+        top: Math.round(rect.bottom + 10),
+        left,
+        width: panelW,
+      });
+    }
     setOpen(next);
     if (next && user) fetchNotifications();
   }
@@ -112,6 +141,7 @@ export default function NotificationsBell({ variant = 'nav' }) {
     <div className={containerClass} ref={boxRef}>
       <button
         type="button"
+        ref={btnRef}
         className={buttonClass}
         aria-label={isAdminVariant ? 'Messages et notifications' : 'Notifications'}
         aria-expanded={open}
@@ -128,7 +158,16 @@ export default function NotificationsBell({ variant = 'nav' }) {
 
       {open &&
         createPortal(
-          <div className="support-bell" ref={panelRef}>
+          <div
+            className="support-bell"
+            ref={panelRef}
+            style={{
+              position: 'fixed',
+              top: (pos?.top ?? 56),
+              left: (pos?.left ?? 0),
+              width: (pos?.width ?? 340),
+            }}
+          >
             <div className="support-bell__head">
               <span className="support-bell__title">Notifications</span>
               {unreadCount > 0 && (
