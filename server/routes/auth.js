@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma.js';
 import { auth } from '../middleware/auth.js';
+import { verifyGoogleToken } from '../lib/google.js';
 
 const router = Router();
 
@@ -75,9 +76,69 @@ router.post('/login', async (req, res, next) => {
       return res.status(401).json(invalid);
     }
 
+    // Compte créé via Google : pas de mot de passe local
+    if (user.provider !== 'local' || !user.password) {
+      return res.status(401).json({ error: 'Ce compte utilise Google. Cliquez sur « Continuer avec Google ».' });
+    }
+
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
       return res.status(401).json(invalid);
+    }
+
+    res.json({ token: signToken(user), user: publicUser(user) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/auth/google
+// Connexion / inscription via le bouton "Continuer avec Google".
+// Body : { idToken } (token d'ID Google obtenu côté client).
+// Le serveur valide le token auprès de Google, puis crée le compte s'il
+// n'existe pas, ou le connecte s'il existe, et renvoie { token, user }.
+router.post('/google', async (req, res, next) => {
+  try {
+    const { idToken } = req.body ?? {};
+
+    const profile = await verifyGoogleToken(idToken);
+    if (!profile) {
+      return res.status(401).json({
+        error:
+          'Connexion Google refusée. Vérifiez que GOOGLE_CLIENT_ID est configuré côté serveur.',
+      });
+    }
+
+    // Recherche du compte par googleId (le plus fiable), puis par email
+    // (pour rattacher un compte local existant ayant le même email).
+    const existing =
+      (await prisma.user.findUnique({ where: { googleId: profile.googleId } })) ||
+      (await prisma.user.findUnique({ where: { email: profile.email } }));
+
+    let user;
+    if (existing) {
+      // Rattache l'identifiant Google et les infos de profil si manquantes
+      user = await prisma.user.update({
+        where: { id: existing.id },
+        data: {
+          googleId: existing.googleId || profile.googleId,
+          provider: 'google',
+          displayName: existing.displayName || profile.name,
+          avatar: existing.avatar || profile.picture,
+        },
+      });
+    } else {
+      // Nouveau compte Google (pas de mot de passe local)
+      user = await prisma.user.create({
+        data: {
+          email: profile.email,
+          password: null,
+          provider: 'google',
+          googleId: profile.googleId,
+          displayName: profile.name,
+          avatar: profile.picture,
+        },
+      });
     }
 
     res.json({ token: signToken(user), user: publicUser(user) });

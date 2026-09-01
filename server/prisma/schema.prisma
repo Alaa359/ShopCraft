@@ -40,7 +40,9 @@ enum OrderStatus {
 model User {
   id          String   @id @default(cuid())
   email       String   @unique
-  password    String // stocké haché (bcrypt)
+  password    String? // stocké haché (bcrypt) — null pour les comptes Google
+  provider    String   @default("local") // local | google
+  googleId    String?  @unique // identifiant Google (si connexion via Google)
   role        Role     @default(USER)
   displayName String? // nom affiché (modifiable dans le profil)
   avatar      String? // URL de la photo de profil (optionnelle)

@@ -73,7 +73,39 @@ cd server
 npx prisma migrate dev      # crée la base `shopcraft` + applique le schéma
 ```
 
-### 4. Lancement en développement
+### 4. Démarrer / arrêter PostgreSQL et le serveur
+
+> ⚠️ Arrêter PostgreSQL **ne supprime pas** les données : elles restent sur le disque
+> et sont conservées à chaque redémarrage.
+
+**Ouvrir (démarrer) PostgreSQL + serveur**
+
+```powershell
+net start postgresql-x64-17   # PowerShell en administrateur — démarre la base de données
+                              # (ou : services.msc → postgresql-x64-17 → Démarrer)
+npm run dev                   # démarre l'app : API (5000) + front (5173)
+```
+
+**Fermer (arrêter) PostgreSQL + serveur**
+
+```powershell
+# 1. arrêter l'app
+#    dans le terminal où tourne `npm run dev` : appuyer sur Ctrl+C
+
+# 2. arrêter PostgreSQL (PowerShell en administrateur)
+net stop postgresql-x64-17    # (ou : services.msc → postgresql-x64-17 → Arrêter)
+```
+
+**Résumé des commandes**
+
+```powershell
+net start postgresql-x64-17   # ouvrir  la base de données
+net stop  postgresql-x64-17   # fermer  la base de données
+npm run dev                   # ouvrir  l'app (racine)
+Ctrl+C                        # fermer  l'app
+```
+
+### 5. Lancement en développement
 
 ```bash
 npm run dev              # depuis la racine : API (port 5000) + front (port 5173)
@@ -99,6 +131,29 @@ npm run make:admin -- votre@email.com
 ```
 
 3. Rechargez la page : le lien **Dashboard** apparaît dans la barre de navigation.
+
+## Connexion Google (bouton « Continuer avec Google »)
+
+> Optionnel. Sans configuration, le bouton Google n'apparaît pas et la connexion
+> classique par email/mot de passe fonctionne normalement.
+
+1. Créez un projet sur [Google Cloud Console](https://console.cloud.google.com/apis/credentials) et activez l'API.
+2. Créez des identifiants **OAuth Client ID** de type *Web application*.
+3. Ajoutez comme **origines JavaScript autorisées** : `http://localhost:5173`.
+4. Copiez le **Client ID** (ex. `xxxx.apps.googleusercontent.com`).
+
+Côté **serveur** (`server/.env`) :
+```bash
+GOOGLE_CLIENT_ID="xxxx.apps.googleusercontent.com"
+```
+
+Côté **client** (créer `client/.env.local`) :
+```bash
+VITE_GOOGLE_CLIENT_ID="xxxx.apps.googleusercontent.com"
+```
+
+5. Relancez `npm run dev`. Le bouton « Continuer avec Google » apparaît sur les pages Connexion et Inscription.
+6. Les nouveaux comptes Google sont créés automatiquement (rôle `USER`). Les comptes avec un mot de passe existant sont rattachés par email.
 
 ## Paiement Stripe (mode test)
 

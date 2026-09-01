@@ -70,15 +70,15 @@ export function deleteProduct(token, id) {
   });
 }
 
-// Upload d'une image (admin). Retourne { url }.
-// Envoi en multipart/form-data (le navigateur gère la limite du corps).
-export async function uploadImage(token, file) {
+// Upload d'un fichier vers un endpoint d'upload (multipart/form-data).
+// Retourne { url }.
+async function uploadFile(token, path, file) {
   const formData = new FormData();
   formData.append('image', file);
 
   let res;
   try {
-    res = await fetch(`${API_URL}/upload/image`, {
+    res = await fetch(`${API_URL}${path}`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: formData,
@@ -92,6 +92,11 @@ export async function uploadImage(token, file) {
     throw new Error(body.error || `Erreur upload (${res.status})`);
   }
   return res.json();
+}
+
+// Upload d'une image (admin). Retourne { url }.
+export async function uploadImage(token, file) {
+  return uploadFile(token, '/upload/image', file);
 }
 
 // ---------- Authentification ----------
@@ -109,6 +114,15 @@ export function login(email, password) {
   return request('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
+  });
+}
+
+// Connexion / inscription via Google (renvoie { token, user }).
+// idToken : token d'ID Google obtenu par le bouton "Continuer avec Google".
+export function googleLogin(idToken) {
+  return request('/auth/google', {
+    method: 'POST',
+    body: JSON.stringify({ idToken }),
   });
 }
 
@@ -130,25 +144,7 @@ export function updateMe(token, data) {
 
 // Upload de la photo de profil (tout utilisateur connecté). Retourne { url }.
 export async function uploadAvatar(token, file) {
-  const formData = new FormData();
-  formData.append('image', file);
-
-  let res;
-  try {
-    res = await fetch(`${API_URL}/upload/avatar`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-    });
-  } catch {
-    throw new Error("Impossible de contacter le serveur. Vérifiez que l'API est démarrée.");
-  }
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || `Erreur upload (${res.status})`);
-  }
-  return res.json();
+  return uploadFile(token, '/upload/avatar', file);
 }
 
 // ---------- Commandes & Paiement ----------

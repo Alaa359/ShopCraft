@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore.js';
+import GoogleButton from '../components/GoogleButton.jsx';
 
 // Page de connexion
 export default function Login() {
   const login = useAuthStore((state) => state.login);
+  const loginWithGoogle = useAuthStore((state) => state.loginWithGoogle);
   const token = useAuthStore((state) => state.token);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,15 +20,29 @@ export default function Login() {
     return <Navigate to="/account" replace />;
   }
 
+  const from = location.state?.from?.pathname || '/account';
+  const afterAuth = () => navigate(from, { replace: true });
+
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
     setError(null);
     try {
       await login(email, password);
-      // Retour vers la page d'origine si protégée, sinon le compte
-      const from = location.state?.from?.pathname || '/account';
-      navigate(from, { replace: true });
+      afterAuth();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleGoogle(idToken) {
+    setLoading(true);
+    setError(null);
+    try {
+      await loginWithGoogle(idToken);
+      afterAuth();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -70,6 +86,11 @@ export default function Login() {
             {loading ? 'Connexion...' : 'Se connecter'}
           </button>
         </form>
+
+        <div className="auth__divider">
+          <span>ou</span>
+        </div>
+        <GoogleButton onSuccess={handleGoogle} />
 
         <p className="auth__switch">
           Pas encore de compte ? <Link to="/register">Inscrivez-vous</Link>

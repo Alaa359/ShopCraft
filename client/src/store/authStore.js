@@ -24,6 +24,13 @@ export const useAuthStore = create(
         return data.user;
       },
 
+      // Connexion / inscription via Google : récupère { token, user }
+      loginWithGoogle: async (idToken) => {
+        const data = await api.googleLogin(idToken);
+        set({ token: data.token, user: data.user });
+        return data.user;
+      },
+
       // Rafraîchit le profil depuis le serveur (ex. après édition du rôle)
       fetchMe: async () => {
         const token = useAuthStore.getState().token;

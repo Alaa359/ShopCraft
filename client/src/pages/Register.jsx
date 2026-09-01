@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore.js';
+import GoogleButton from '../components/GoogleButton.jsx';
 
 // Page d'inscription
 export default function Register() {
   const register = useAuthStore((state) => state.register);
+  const loginWithGoogle = useAuthStore((state) => state.loginWithGoogle);
   const token = useAuthStore((state) => state.token);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,6 +33,19 @@ export default function Register() {
 
     try {
       await register(email, password);
+      navigate('/account', { replace: true });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleGoogle(idToken) {
+    setLoading(true);
+    setError(null);
+    try {
+      await loginWithGoogle(idToken);
       navigate('/account', { replace: true });
     } catch (err) {
       setError(err.message);
@@ -88,6 +103,11 @@ export default function Register() {
             {loading ? 'Inscription...' : 'Créer mon compte'}
           </button>
         </form>
+
+        <div className="auth__divider">
+          <span>ou</span>
+        </div>
+        <GoogleButton onSuccess={handleGoogle} />
 
         <p className="auth__switch">
           Déjà un compte ? <Link to="/login">Connectez-vous</Link>
