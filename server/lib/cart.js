@@ -60,3 +60,19 @@ export async function buildCart(items) {
     productIds,
   };
 }
+
+// Obtient un panier en convertissant les erreurs métier (CartError) en
+// réponse HTTP 400. Toute autre erreur (DB, etc.) est relancée telle quelle.
+// Usage dans une route : const cart = await tryBuildCart(items, res);
+// Renvoie le panier, ou undefined si une réponse 400 a déjà été envoyée.
+export async function tryBuildCart(items, res) {
+  try {
+    return await buildCart(items);
+  } catch (err) {
+    if (err instanceof CartError) {
+      res.status(400).json({ error: err.message });
+      return undefined;
+    }
+    throw err;
+  }
+}

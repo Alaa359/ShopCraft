@@ -19,7 +19,24 @@ dotenv.config();
 const app = express();
 
 // Middlewares globaux
-app.use(cors({ origin: process.env.CLIENT_URL || '*' }));
+// CORS restreint à une liste explicite d'origines (le front en dev),
+// plutôt qu'au wildcard *, pour éviter que n'importe quel site puisse appeler l'API.
+const ALLOWED_ORIGINS = [
+  process.env.CLIENT_URL,
+  'http://localhost:5173',
+].filter(Boolean);
+
+app.use(
+  cors({
+    origin(origin, cb) {
+      // Autorise aussi les requêtes sans origine (curl, apps, webhooks)
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+        return cb(null, true);
+      }
+      return cb(new Error('Origine non autorisée par CORS'));
+    },
+  })
+);
 
 // IMPORTANT : le webhook Stripe doit recevoir le corps brut (Buffer) pour
 // vérifier la signature. Il est donc monté AVANT express.json().

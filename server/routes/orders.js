@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { auth } from '../middleware/auth.js';
 import { isAdmin } from '../middleware/isAdmin.js';
-import { buildCart, CartError } from '../lib/cart.js';
+import { tryBuildCart } from '../lib/cart.js';
 import { getOrderByPaymentIntent, createOrderFromCart } from '../lib/orderService.js';
 import { stripe, stripeEnabled } from '../lib/stripe.js';
 
@@ -87,15 +87,8 @@ router.post('/', auth, async (req, res, next) => {
     }
 
     // Reconstruit et valide le panier côté serveur
-    let cart;
-    try {
-      cart = await buildCart(items);
-    } catch (err) {
-      if (err instanceof CartError) {
-        return res.status(400).json({ error: err.message });
-      }
-      throw err;
-    }
+    const cart = await tryBuildCart(items, res);
+    if (!cart) return; // réponse 400 déjà envoyée (panier invalide)
 
     // Vérification serveur du paiement (si Stripe est utilisé)
     if (paymentIntentId) {

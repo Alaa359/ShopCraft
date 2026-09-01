@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { auth } from '../middleware/auth.js';
-import { buildCart, CartError } from '../lib/cart.js';
+import { tryBuildCart } from '../lib/cart.js';
 import { stripe, stripeEnabled } from '../lib/stripe.js';
 
 const router = Router();
@@ -14,15 +14,8 @@ router.post('/create-intent', auth, async (req, res, next) => {
   try {
     const { items } = req.body ?? {};
 
-    let cart;
-    try {
-      cart = await buildCart(items);
-    } catch (err) {
-      if (err instanceof CartError) {
-        return res.status(400).json({ error: err.message });
-      }
-      throw err;
-    }
+    const cart = await tryBuildCart(items, res);
+    if (!cart) return; // réponse 400 déjà envoyée (panier invalide)
 
     if (!stripeEnabled) {
       return res.json({
