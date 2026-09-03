@@ -150,19 +150,22 @@ export async function uploadAvatar(token, file) {
 // ---------- Commandes & Paiement ----------
 
 // Prépare le paiement d'un panier (renvoie { clientSecret, mode, total, publicKey })
-export function createPaymentIntent(token, items) {
+// data : { items, shipping }
+export function createPaymentIntent(token, items, shipping = {}) {
   return request('/payments/create-intent', {
     method: 'POST',
-    body: JSON.stringify({ items }),
+    body: JSON.stringify({ items, shipping }),
     headers: { Authorization: `Bearer ${token}` },
   });
 }
 
-// Crée la commande après paiement (paymentIntentId optionnel)
-export function createOrder(token, items, paymentIntentId = null) {
+// Crée la commande après paiement.
+// data : { items, shipping, paymentMethod (CARD|CASH), paymentIntentId? }
+export function createOrder(token, items, paymentIntentId = null, meta = {}) {
+  const { shipping = {}, paymentMethod = 'CARD' } = meta;
   return request('/orders', {
     method: 'POST',
-    body: JSON.stringify({ items, paymentIntentId }),
+    body: JSON.stringify({ items, shipping, paymentMethod, paymentIntentId }),
     headers: { Authorization: `Bearer ${token}` },
   });
 }
