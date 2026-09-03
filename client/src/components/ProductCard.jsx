@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCartStore } from '../store/cartStore.js';
 import { useUiStore } from '../store/uiStore.js';
+import { useCurrency } from '../lib/useCurrency.js';
 import RatingStars from './RatingStars.jsx';
 
 // Seuils pour les badges d'information sur la carte
@@ -43,16 +45,41 @@ function CardBadges({ product }) {
 export default function ProductCard({ product }) {
   const addItem = useCartStore((state) => state.addItem);
   const showToast = useUiStore((state) => state.showToast);
-  const price = Number(product.price).toFixed(2);
-  const outOfStock = product.stock <= 0;
+  const price = useCurrency().format(product.price);
+  const stock = Math.max(0, Number(product.stock) || 0);
+  const outOfStock = stock <= 0;
   const reviewCount = product.reviewCount ?? 0;
+
+  const [qty, setQty] = useState(1);
+  const [overstock, setOverstock] = useState(false);
+
+  function handleInc(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (qty < stock) {
+      setQty(qty + 1);
+      setOverstock(false);
+    } else {
+      setOverstock(true);
+    }
+  }
+
+  function handleDec(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (qty > 1) {
+      setQty(qty - 1);
+      setOverstock(false);
+    }
+  }
 
   function handleAdd(e) {
     e.preventDefault();
     e.stopPropagation();
     if (outOfStock) return;
-    addItem(product);
-    showToast(`${product.name} ajouté au panier`);
+    addItem(product, qty);
+    setOverstock(false);
+    showToast(`${product.name} ajouté au panier (×${qty})`);
   }
 
   return (
@@ -62,14 +89,46 @@ export default function ProductCard({ product }) {
           <ProductImage product={product} />
         </Link>
         <CardBadges product={product} />
-        <button
-          type="button"
-          className="card__add"
-          onClick={handleAdd}
-          disabled={outOfStock}
-        >
-          {outOfStock ? 'Rupture de stock' : 'Ajouter au panier'}
-        </button>
+
+        {!outOfStock && (
+          <div className="card__cta">
+            <span className="card__cta-label">Quantité</span>
+            <div className="card__qty">
+              <button
+                type="button"
+                className="card__qty-btn"
+                onClick={handleDec}
+                disabled={qty <= 1}
+                aria-label="Diminuer la quantité"
+              >
+                −
+              </button>
+              <span className="card__qty-count">{qty}</span>
+              <button
+                type="button"
+                className="card__qty-btn"
+                onClick={handleInc}
+                aria-label="Augmenter la quantité"
+              >
+                +
+              </button>
+            </div>
+            <button type="button" className="card__cta-add" onClick={handleAdd}>
+              Ajouter au panier
+            </button>
+            {overstock && (
+              <span className="card__qty-hint" role="alert">
+                Stock insuffisant ({stock} disponible{stock > 1 ? 's' : ''})
+              </span>
+            )}
+          </div>
+        )}
+
+        {outOfStock && (
+          <button type="button" className="card__add" disabled>
+            Rupture de stock
+          </button>
+        )}
       </div>
       <div className="card__body">
         <span className="card__category">{product.category}</span>
@@ -86,7 +145,7 @@ export default function ProductCard({ product }) {
         </div>
 
         <div className="card__footer">
-          <span className="card__price">{price} €</span>
+          <span className="card__price">{price}</span>
           <span className={`card__stock ${outOfStock ? 'card__stock--out' : ''}`}>
             {outOfStock ? 'Rupture' : 'En stock'}
           </span>
