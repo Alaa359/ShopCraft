@@ -7,6 +7,7 @@ import {
   selectCartCount,
   FREE_SHIPPING_THRESHOLD,
 } from '../store/cartStore.js';
+import { useCurrency } from '../lib/useCurrency.js';
 import CartItem from '../components/CartItem.jsx';
 
 // Page panier : liste des articles + résumé sticky (sous-total, livraison, total)
@@ -19,6 +20,7 @@ export default function Cart() {
   const updateQuantity = useCartStore((state) => state.updateQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
   const clear = useCartStore((state) => state.clear);
+  const { format } = useCurrency();
 
   if (items.length === 0) {
     return (
@@ -59,20 +61,20 @@ export default function Cart() {
 
           <div className="cart__summary-row">
             <span>Sous-total</span>
-            <span>{subtotal.toFixed(2)} €</span>
+            <span>{format(subtotal)}</span>
           </div>
           <div className="cart__summary-row">
             <span>Livraison</span>
-            <span>{shipping === 0 ? 'Offerte' : `${shipping.toFixed(2)} €`}</span>
+            <span>{shipping === 0 ? 'Offerte' : format(shipping)}</span>
           </div>
           {shipping > 0 && (
             <p className="cart__ship-note">
-              Livraison offerte dès {FREE_SHIPPING_THRESHOLD} € d'achat.
+              Livraison offerte dès {format(FREE_SHIPPING_THRESHOLD)} d'achat.
             </p>
           )}
           <div className="cart__summary-row cart__summary-row--total">
             <span>Total</span>
-            <strong>{total.toFixed(2)} €</strong>
+            <strong>{format(total)}</strong>
           </div>
 
           <Link to="/checkout" className="btn btn--primary btn--block">

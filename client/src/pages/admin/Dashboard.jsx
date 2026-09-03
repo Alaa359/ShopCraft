@@ -14,6 +14,8 @@ import {
 } from 'recharts';
 import { useAuthStore } from '../../store/authStore.js';
 import { getStats, getAllOrders, getProducts } from '../../api/client.js';
+import { useCurrency } from '../../lib/useCurrency.js';
+import { getInitials } from '../../lib/user.js';
 
 // Seuil "stock faible" pour les alertes du dashboard
 const LOW_STOCK_LIMIT = 5;
@@ -31,13 +33,6 @@ const PERIODS = [
   { value: '30', label: '30 jours' },
   { value: '90', label: '90 jours' },
 ];
-
-function formatEuro(value) {
-  return Number(value).toLocaleString('fr-FR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
 
 // ---- Données ----
 
@@ -129,13 +124,14 @@ function StatCard({ tone, icon, label, value, sub, link }) {
 
 // Info-bulle flottante du graphique (carte sombre)
 function ChartTip({ active, payload, label }) {
+  const { format } = useCurrency();
   if (!active || !payload?.length) return null;
   const tip = payload[0]?.payload;
   return (
     <div className="dash-chart__tip">
       <strong>{tip?.tooltip ?? label}</strong>
       <span className="dash-chart__tip-row">
-        <i className="is-rev" /> Revenue : <b>{formatEuro(tip?.revenue ?? 0)} €</b>
+        <i className="is-rev" /> Revenue : <b>{format(tip?.revenue ?? 0)}</b>
       </span>
       <span className="dash-chart__tip-row">
         <i className="is-orders" /> Orders : <b>{tip?.orders ?? 0}</b>
@@ -189,6 +185,7 @@ function DashboardSkeleton() {
 export default function Dashboard() {
   const token = useAuthStore((state) => state.token);
   const user = useAuthStore((state) => state.user);
+  const { format } = useCurrency();
   const [stats, setStats] = useState(null);
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
@@ -287,7 +284,7 @@ export default function Dashboard() {
   const firstName =
     user?.name ||
     (user?.email ? user.email.charAt(0).toUpperCase() + user.email.slice(1, user.email.indexOf('@')) : 'Admin');
-  const avatarInitial = (user?.name || user?.email || 'A').charAt(0).toUpperCase();
+  const avatarInitial = getInitials(user?.name || user?.displayName, user?.email);
 
   const icons = {
     sales: (
@@ -361,8 +358,8 @@ export default function Dashboard() {
           tone="yellow"
           icon={icons.sales}
           label="Ventes totales"
-          value={`${formatEuro(stats?.totalRevenue ?? 0)} €`}
-          sub={`${todayRevenue ? `+${formatEuro(todayRevenue)} €` : '0,00 €'} aujourd'hui`}
+          value={format(stats?.totalRevenue ?? 0)}
+          sub={`${format(todayRevenue)} aujourd'hui`}
           link="/admin/orders"
         />
         <StatCard
@@ -384,7 +381,7 @@ export default function Dashboard() {
           icon={icons.refund}
           label="Remboursés"
           value={String(cancelledOrders.length)}
-          sub={`${formatEuro(cancelledTotal)} € annulés`}
+          sub={`${format(cancelledTotal)} annulés`}
         />
       </section>
 
@@ -395,7 +392,7 @@ export default function Dashboard() {
             <div>
               <h2 className="dash-card__title">Revenus vs Commandes</h2>
               <p className="dash-card__sub">
-                {periodRevenue ? `${formatEuro(periodRevenue)} €` : 'Aucun revenu'} sur {days} jours
+                {periodRevenue ? `${format(periodRevenue)}` : 'Aucun revenu'} sur {days} jours
               </p>
             </div>
             <div className="dash-legend">
@@ -414,13 +411,13 @@ export default function Dashboard() {
                 <CartesianGrid stroke="#C6CFD7" strokeDasharray="3 8" vertical={false} />
                 <XAxis
                   dataKey="label"
-                  tick={{ fill: '#5F6B75', fontSize: 12, fontFamily: 'Inter' }}
+                  tick={{ fill: '#5F6B75', fontSize: 12, fontFamily: 'DM Sans' }}
                   tickLine={false}
                   axisLine={false}
                   minTickGap={32}
                 />
                 <YAxis
-                  tick={{ fill: '#5F6B75', fontSize: 12, fontFamily: 'Inter' }}
+                  tick={{ fill: '#5F6B75', fontSize: 12, fontFamily: 'DM Sans' }}
                   tickLine={false}
                   axisLine={false}
                   tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(v % 1000 ? 1 : 0)}k` : v)}
@@ -476,14 +473,14 @@ export default function Dashboard() {
                     style={{ width: `${Math.round((value / categoryMax) * 100)}%` }}
                   />
                 </div>
-                <strong className="dash-bar__value">{formatEuro(value)} €</strong>
+                <strong className="dash-bar__value">{format(value)}</strong>
               </li>
             ))}
             {categoryRevenue.length > 0 && (
               <li className="dash-bar dash-bar--total">
                 <span className="dash-bar__label">Total</span>
                 <div className="dash-bar__track" />
-                <strong className="dash-bar__value">{formatEuro(categoryTotal)} €</strong>
+                <strong className="dash-bar__value">{format(categoryTotal)}</strong>
               </li>
             )}
           </ul>
@@ -517,7 +514,7 @@ export default function Dashboard() {
                       {product.name}
                     </Link>
                     <span className="dash-best__meta">
-                      {product.price ? `${formatEuro(product.price)} €` : '—'}
+                      {product.price ? format(product.price) : '—'}
                     </span>
                     <span className="dash-best__bar-wrap">
                       <span
@@ -636,7 +633,7 @@ export default function Dashboard() {
                     <td className="admin__id">#{order.id.slice(-8).toUpperCase()}</td>
                     <td>{order.user?.email ?? '—'}</td>
                     <td>{new Date(order.createdAt).toLocaleDateString('fr-FR')}</td>
-                    <td>{Number(order.total).toFixed(2)} €</td>
+                    <td>{format(order.total)}</td>
                     <td>
                       <span className={`order__status order__status--${order.status.toLowerCase()}`}>
                         {STATUS_LABELS[order.status] ?? order.status}

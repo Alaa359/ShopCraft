@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore.js';
 import { getAllOrders, updateOrderStatus } from '../../api/client.js';
 import { useAdminSearch } from '../../components/AdminLayout.jsx';
+import { lookupCountry } from '../../lib/countries.js';
+import { useCurrency } from '../../lib/useCurrency.js';
 
 // Libellés français des statuts
 const STATUS_LABELS = {
@@ -10,6 +12,17 @@ const STATUS_LABELS = {
   SHIPPED: 'Expédiée',
   DELIVERED: 'Livrée',
   CANCELLED: 'Annulée',
+};
+
+// Libellés des méthodes et statuts de paiement
+const PAYMENT_METHOD_LABELS = {
+  CARD: 'Carte',
+  CASH: 'Espèces',
+};
+
+const PAYMENT_STATUS_LABELS = {
+  PAID: 'Payé',
+  UNPAID: 'À payer',
 };
 
 const STATUSES = ['PENDING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
@@ -26,7 +39,7 @@ const DATE_OPTIONS = [
 
 // Squelette de tableau pendant le chargement
 function TableSkeleton() {
-  const cols = ['Commande', 'Client', 'Date', 'Articles', 'Total', 'Statut', 'Détails'];
+  const cols = ['Commande', 'Client', 'Date', 'Articles', 'Total', 'Paiement', 'Statut', 'Détails'];
   return (
     <table className="admin__table admin__table--skeleton">
       <thead>
@@ -64,6 +77,7 @@ function IconEye() {
 // Page admin : suivi des commandes + changement de statut + détail
 export default function OrdersAdmin() {
   const token = useAuthStore((state) => state.token);
+  const { format } = useCurrency();
 
   const [orders, setOrders] = useState([]);
   const [statusFilter, setStatusFilter] = useState('');
@@ -191,6 +205,7 @@ export default function OrdersAdmin() {
                   <th>Date</th>
                   <th>Articles</th>
                   <th>Total</th>
+                  <th>Paiement</th>
                   <th>Statut</th>
                   <th>Détails</th>
                 </tr>
@@ -211,7 +226,15 @@ export default function OrdersAdmin() {
                         ))}
                       </ul>
                     </td>
-                    <td>{Number(order.total).toFixed(2)} €</td>
+                    <td>{format(order.total)}</td>
+                    <td>
+                      <span className={`payment-method payment-method--${(order.paymentMethod || 'CARD').toLowerCase()}`}>
+                        {PAYMENT_METHOD_LABELS[order.paymentMethod] ?? '—'}
+                      </span>
+                      <span className={`payment-status payment-status--${(order.paymentStatus || '').toLowerCase()}`}>
+                        {PAYMENT_STATUS_LABELS[order.paymentStatus] ?? ''}
+                      </span>
+                    </td>
                     <td>
                       {/* Badge cliquable : le menu invite à changer de statut */}
                       <select
@@ -291,9 +314,48 @@ export default function OrdersAdmin() {
                 <div className="order-detail__cell">
                   <span className="order-detail__label">Total</span>
                   <span className="order-detail__value order-detail__value--total">
-                    {Number(detail.total).toFixed(2)} €
+                    {format(detail.total)}
                   </span>
                 </div>
+                <div className="order-detail__cell">
+                  <span className="order-detail__label">Paiement</span>
+                  <span className="order-detail__value">
+                    <span className={`payment-method payment-method--${(detail.paymentMethod || 'CARD').toLowerCase()}`}>
+                      {PAYMENT_METHOD_LABELS[detail.paymentMethod] ?? '—'}
+                    </span>
+                    <span className={`payment-status payment-status--${(detail.paymentStatus || '').toLowerCase()}`}>
+                      {PAYMENT_STATUS_LABELS[detail.paymentStatus] ?? ''}
+                    </span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Informations de livraison */}
+              <h3 className="order-detail__sub">Livraison</h3>
+              <div className="order-detail__delivery">
+                <div className="order-detail__delivery-row">
+                  <span className="order-detail__label">Destinataire</span>
+                  <span className="order-detail__value">
+                    {detail.fullName} — {detail.phone}
+                  </span>
+                </div>
+                <div className="order-detail__delivery-row">
+                  <span className="order-detail__label">Adresse</span>
+                  <span className="order-detail__value">
+                    {detail.address}, {detail.postalCode} {detail.city},{' '}
+                    {lookupCountry(detail.country)?.name ?? detail.country}
+                  </span>
+                </div>
+                <div className="order-detail__delivery-row">
+                  <span className="order-detail__label">Email</span>
+                  <span className="order-detail__value">{detail.email || detail.user?.email || '—'}</span>
+                </div>
+                {detail.note && (
+                  <div className="order-detail__delivery-row">
+                    <span className="order-detail__label">Note</span>
+                    <span className="order-detail__value">{detail.note}</span>
+                  </div>
+                )}
               </div>
 
               <h3 className="order-detail__sub">Articles</h3>
@@ -309,7 +371,7 @@ export default function OrdersAdmin() {
                       <Link to={`/products/${item.product.id}`}>{item.product.name}</Link>
                     </span>
                     <span className="order-detail__item-qty">
-                      {item.quantity} × {Number(item.price).toFixed(2)} €
+                      {item.quantity} × {format(item.price)}
                     </span>
                   </li>
                 ))}

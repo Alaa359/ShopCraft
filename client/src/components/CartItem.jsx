@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
+import { useCurrency } from '../lib/useCurrency.js';
 
 // Ligne d'un produit dans le panier : image, infos, quantité et suppression
 export default function CartItem({ item, onUpdateQuantity, onRemove }) {
-  const price = item.price.toFixed(2);
-  const lineTotal = (item.price * item.quantity).toFixed(2);
+  const { format } = useCurrency();
+  const price = format(item.price);
+  const lineTotal = format(item.price * item.quantity);
 
   return (
     <div className="cart-item">
@@ -19,7 +21,7 @@ export default function CartItem({ item, onUpdateQuantity, onRemove }) {
         <Link to={`/products/${item.id}`} className="cart-item__name">
           {item.name}
         </Link>
-        <p className="cart-item__price">{price} €</p>
+        <p className="cart-item__price">{price}</p>
       </div>
 
       <div className="cart-item__controls">
@@ -42,7 +44,7 @@ export default function CartItem({ item, onUpdateQuantity, onRemove }) {
       </div>
 
       <div className="cart-item__right">
-        <span className="cart-item__total">{lineTotal} €</span>
+        <span className="cart-item__total">{lineTotal}</span>
         <button
           className="cart-item__remove"
           onClick={() => onRemove(item.id)}

@@ -4,6 +4,7 @@ import { getProducts } from '../api/client.js';
 import ProductCard from '../components/ProductCard.jsx';
 import Filters from '../components/Filters.jsx';
 import ProductCardSkeleton from '../components/Skeleton.jsx';
+import { useCurrency } from '../lib/useCurrency.js';
 
 // Page d'accueil : bannière (hero) + catalogue filtrable
 export default function Home() {
@@ -17,6 +18,8 @@ export default function Home() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const { format } = useCurrency();
 
   // Recharge les produits quand les filtres changent
   useEffect(() => {
@@ -46,7 +49,8 @@ export default function Home() {
           <p className="hero__eyebrow">Collection premium</p>
           <h1 className="hero__title">L'élégance, faite avec soin</h1>
           <p className="hero__text">
-            Des pièces sélectionnées pour sublimer votre quotidien. Livraison offerte dès 100 €.
+            Des pièces sélectionnées pour sublimer votre quotidien. Livraison offerte dès{' '}
+            {format(100)}.
           </p>
           <div className="hero__cta">
             <a href="#catalogue" className="btn btn--primary btn--lg">
@@ -57,7 +61,7 @@ export default function Home() {
             </a>
           </div>
           <p className="hero__note">
-            <span>Livraison offerte dès 100 €</span>
+            <span>Livraison offerte dès {format(100)}</span>
             <span>Retours sous 30 jours</span>
             <span>Paiement 100 % sécurisé</span>
           </p>

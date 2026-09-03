@@ -4,6 +4,7 @@ import { getProduct, addReview, updateReview, deleteReview } from '../api/client
 import { useCartStore } from '../store/cartStore.js';
 import { useUiStore } from '../store/uiStore.js';
 import { useAuthStore } from '../store/authStore.js';
+import { useCurrency } from '../lib/useCurrency.js';
 import RatingStars from '../components/RatingStars.jsx';
 
 // Sélecteur de note interactif (1 à 5 étoiles) avec prévisualisation au survol
@@ -77,6 +78,7 @@ export default function ProductPage() {
   const authUser = useAuthStore((state) => state.user);
   const addItem = useCartStore((state) => state.addItem);
   const showToast = useUiStore((state) => state.showToast);
+  const currency = useCurrency();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -181,7 +183,7 @@ export default function ProductPage() {
       </div>
     );
 
-  const price = Number(product.price).toFixed(2);
+  const price = currency.format(product.price);
   const outOfStock = product.stock <= 0;
 
   // Calculs sur les avis
@@ -250,7 +252,7 @@ export default function ProductPage() {
             </button>
           )}
 
-          <p className="product__price">{price} €</p>
+          <p className="product__price">{price}</p>
 
           <p className={`product__stock ${outOfStock ? 'product__stock--out' : ''}`}>
             {outOfStock ? 'Rupture de stock' : `${product.stock} disponible(s)`}
