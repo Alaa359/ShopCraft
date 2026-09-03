@@ -57,46 +57,71 @@ export default function Register() {
   return (
     <div className="auth">
       <div className="auth__card">
-        <h1 className="auth__title">Créer un compte</h1>
+        <header className="auth__head">
+          <span className="auth__monogram" aria-hidden="true">S</span>
+          <span className="auth__eyebrow">ShopCraft</span>
+          <h1 className="auth__title">Créer un compte</h1>
+          <p className="auth__subtitle">
+            Rejoignez ShopCraft pour profiter d'un univers de pièces sélectionnées.
+          </p>
+        </header>
 
         {error && <p className="auth__error">{error}</p>}
 
         <form onSubmit={handleSubmit} className="auth__form">
           <label className="auth__label">
-            Email
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="auth__input"
-              placeholder="vous@exemple.com"
-            />
+            <span>Email</span>
+            <div className="auth__input-wrap">
+              <svg className="auth__icon" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                <path d="M4 7l8 6 8-6" fill="none" stroke="currentColor" strokeWidth="1.6" />
+              </svg>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="auth__input"
+                placeholder="vous@exemple.com"
+              />
+            </div>
           </label>
 
           <label className="auth__label">
-            Mot de passe (6 caractères min)
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-              className="auth__input"
-              placeholder="••••••••"
-            />
+            <span>Mot de passe (6 caractères min)</span>
+            <div className="auth__input-wrap">
+              <svg className="auth__icon" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="5" y="10" width="14" height="10" rx="2" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                <path d="M8 10V7a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" strokeWidth="1.6" />
+              </svg>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                className="auth__input"
+                placeholder="••••••••"
+              />
+            </div>
           </label>
 
           <label className="auth__label">
-            Confirmer le mot de passe
-            <input
-              type="password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              required
-              className="auth__input"
-              placeholder="••••••••"
-            />
+            <span>Confirmer le mot de passe</span>
+            <div className="auth__input-wrap">
+              <svg className="auth__icon" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="5" y="10" width="14" height="10" rx="2" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                <path d="M8 10V7a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" strokeWidth="1.6" />
+              </svg>
+              <input
+                type="password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                required
+                className="auth__input"
+                placeholder="••••••••"
+              />
+            </div>
           </label>
 
           <button type="submit" className="btn btn--primary auth__submit" disabled={loading}>

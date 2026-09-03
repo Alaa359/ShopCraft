@@ -4,7 +4,6 @@ import { useCartStore, selectCartCount } from '../store/cartStore.js';
 import { useAuthStore } from '../store/authStore.js';
 import { useSupportStore } from '../store/notificationStore.js';
 import NotificationsBell from './NotificationsBell.jsx';
-import ThemeToggle from './ThemeToggle.jsx';
 import UserMenu from './UserMenu.jsx';
 import { useT } from '../i18n.js';
 
@@ -105,7 +104,6 @@ export default function Navbar() {
           >
             {t('help')}
           </button>
-          <ThemeToggle />
           {!user && (
             <Link to="/login" className="navbar__link" onClick={closeMenu}>
               {t('login')}

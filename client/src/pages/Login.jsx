@@ -53,33 +53,52 @@ export default function Login() {
   return (
     <div className="auth">
       <div className="auth__card">
-        <h1 className="auth__title">Connexion</h1>
+        <header className="auth__head">
+          <span className="auth__monogram" aria-hidden="true">S</span>
+          <span className="auth__eyebrow">ShopCraft</span>
+          <h1 className="auth__title">Bon retour parmi nous</h1>
+          <p className="auth__subtitle">
+            Connectez-vous pour retrouver votre panier et vos commandes.
+          </p>
+        </header>
 
         {error && <p className="auth__error">{error}</p>}
 
         <form onSubmit={handleSubmit} className="auth__form">
           <label className="auth__label">
-            Email
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="auth__input"
-              placeholder="vous@exemple.com"
-            />
+            <span>Email</span>
+            <div className="auth__input-wrap">
+              <svg className="auth__icon" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                <path d="M4 7l8 6 8-6" fill="none" stroke="currentColor" strokeWidth="1.6" />
+              </svg>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="auth__input"
+                placeholder="vous@exemple.com"
+              />
+            </div>
           </label>
 
           <label className="auth__label">
-            Mot de passe
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="auth__input"
-              placeholder="••••••••"
-            />
+            <span>Mot de passe</span>
+            <div className="auth__input-wrap">
+              <svg className="auth__icon" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="5" y="10" width="14" height="10" rx="2" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                <path d="M8 10V7a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" strokeWidth="1.6" />
+              </svg>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="auth__input"
+                placeholder="••••••••"
+              />
+            </div>
           </label>
 
           <button type="submit" className="btn btn--primary auth__submit" disabled={loading}>
