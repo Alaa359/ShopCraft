@@ -6,7 +6,34 @@ import { prisma } from './prisma.js';
 // Idempotence : si une commande existe déjà pour ce paymentIntentId,
 // elle est renvoyée telle quelle (évite les doublons en cas de course
 // entre la réponse synchrone et l'événement asynchrone du webhook).
-export async function createOrderFromCart({ userId, cart, paymentIntentId = null }) {
+// Champs de livraison acceptés dans le formulaire de commande
+export const DELIVERY_FIELDS = [
+  'fullName',
+  'phone',
+  'email',
+  'address',
+  'city',
+  'postalCode',
+  'country',
+  'note',
+];
+
+// Construit l'objet de données des champs de livraison (avec valeurs vides par défaut)
+export function deliveryData(shipping = {}) {
+  return DELIVERY_FIELDS.reduce((acc, key) => {
+    acc[key] = (shipping[key] ?? '').trim();
+    return acc;
+  }, {});
+}
+
+export async function createOrderFromCart({
+  userId,
+  cart,
+  paymentIntentId = null,
+  shipping = {},
+  paymentMethod = 'CARD',
+  paymentStatus = 'PAID',
+}) {
   return prisma.$transaction(async (tx) => {
     if (paymentIntentId) {
       const existing = await tx.order.findUnique({
@@ -15,11 +42,16 @@ export async function createOrderFromCart({ userId, cart, paymentIntentId = null
       if (existing) return existing;
     }
 
+    const delivery = deliveryData(shipping);
+
     const created = await tx.order.create({
       data: {
         userId,
         total: cart.total,
         stripePaymentIntentId: paymentIntentId,
+        paymentMethod,
+        paymentStatus,
+        ...delivery,
         items: {
           create: cart.lines.map((line) => ({
             productId: line.productId,

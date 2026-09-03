@@ -69,6 +69,7 @@ app.post(
       const intent = event.data.object;
       const userId = intent.metadata?.userId;
       const itemsRaw = intent.metadata?.items;
+      const shippingRaw = intent.metadata?.shipping;
 
       try {
         if (!userId || !itemsRaw) {
@@ -82,7 +83,15 @@ app.post(
         }
         const items = JSON.parse(itemsRaw);
         const cart = await buildCart(items);
-        const order = await createOrderFromCart({ userId, cart, paymentIntentId: intent.id });
+        const shipping = shippingRaw ? JSON.parse(shippingRaw) : {};
+        const order = await createOrderFromCart({
+          userId,
+          cart,
+          paymentIntentId: intent.id,
+          shipping,
+          paymentMethod: 'CARD',
+          paymentStatus: 'PAID',
+        });
         console.log(`Webhook : commande ${order.id} créée pour le paiement ${intent.id}`);
       } catch (err) {
         if (err instanceof CartError || err instanceof SyntaxError) {

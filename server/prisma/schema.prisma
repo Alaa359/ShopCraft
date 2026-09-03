@@ -36,6 +36,18 @@ enum OrderStatus {
   CANCELLED // annulée
 }
 
+// Méthode de paiement choisie par le client au moment de la commande
+enum PaymentMethod {
+  CARD // carte bancaire (payée en ligne via Stripe)
+  CASH // espèces à la livraison
+}
+
+// Statut de paiement d'une commande
+enum PaymentStatus {
+  PAID // paiement confirmé (carte en ligne)
+  UNPAID // paiement en attente (espèces à la livraison)
+}
+
 // Compte utilisateur (client ou admin)
 model User {
   id          String   @id @default(cuid())
@@ -75,12 +87,26 @@ model Product {
 
 // Commande passée par un utilisateur
 model Order {
-  id                    String      @id @default(cuid())
+  id                    String        @id @default(cuid())
   userId                String
-  status                OrderStatus @default(PENDING)
-  total                 Decimal     @db.Decimal(10, 2)
-  stripePaymentIntentId String?     @unique // identifiant Stripe du paiement (si payé via Stripe)
-  createdAt             DateTime    @default(now())
+  status                OrderStatus   @default(PENDING)
+  total                 Decimal       @db.Decimal(10, 2)
+  stripePaymentIntentId String?       @unique // identifiant Stripe du paiement (si payé via Stripe)
+  createdAt             DateTime      @default(now())
+
+  // ---- Informations de livraison (formulaire rempli au checkout) ----
+  fullName   String
+  phone      String
+  email      String // email de livraison (pré-rempli avec le compte)
+  address    String
+  city       String
+  postalCode String
+  country    String
+  note       String? // remarque optionnelle (livraison, etc.)
+
+  // ---- Paiement ----
+  paymentMethod PaymentMethod @default(CARD) // carte bancaire | espèces à la livraison
+  paymentStatus PaymentStatus @default(PAID) // payée | à payer à la livraison
 
   user   User        @relation(fields: [userId], references: [id])
   items  OrderItem[]
