@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore.js';
+import { getInitials } from '../lib/user.js';
 import { useT } from '../i18n.js';
 
 // Menu utilisateur : cercle avatar / initiale dans la barre du site.
@@ -41,7 +42,7 @@ export default function UserMenu() {
   }
 
   const displayName = user?.displayName?.trim() || user?.email?.split('@')[0] || 'Compte';
-  const initial = displayName.charAt(0).toUpperCase();
+  const initial = getInitials(user?.displayName, user?.email);
 
   return (
     <div className="user-menu" ref={boxRef}>

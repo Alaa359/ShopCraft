@@ -1,6 +1,7 @@
 import { createContext, useContext, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore.js';
+import { getInitials } from '../lib/user.js';
 import NotificationsBell from './NotificationsBell.jsx';
 
 // Recherche partagée entre le header admin et les listes des pages
@@ -43,7 +44,7 @@ const ICONS = {
 export default function AdminLayout({ children }) {
   const user = useAuthStore((state) => state.user);
   const [search, setSearch] = useState('');
-  const initial = (user?.name || user?.email || 'A').charAt(0).toUpperCase();
+  const initial = getInitials(user?.name || user?.displayName, user?.email);
 
   const NAV_ITEMS = [
     { to: '/admin', end: true, icon: ICONS.grid, label: 'Statistiques' },
