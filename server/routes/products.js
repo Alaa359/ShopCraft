@@ -50,6 +50,26 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+// GET /api/products/suggest?q=...
+// Autocomplete : renvoie les produits dont le nom COMMENCE par le terme tapé.
+// Usage : suggestions dans la barre de recherche (top ~6 résultats légers).
+// Attention : déclarée AVANT la route /:id pour ne pas être captée par celle-ci.
+router.get('/suggest', async (req, res, next) => {
+  try {
+    const q = String(req.query.q ?? '').trim();
+    if (!q) return res.json([]);
+    const products = await prisma.product.findMany({
+      where: { name: { startsWith: q, mode: 'insensitive' } },
+      orderBy: { name: 'asc' },
+      take: 6,
+      select: { id: true, name: true, category: true, price: true, images: true },
+    });
+    res.json(products);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/products/:id
 // Détail d'un produit avec ses avis
 router.get('/:id', async (req, res, next) => {

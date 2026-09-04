@@ -37,6 +37,13 @@ export function getProducts(params = {}) {
   return request(`/products${query ? `?${query}` : ''}`);
 }
 
+// Suggestions d'autocomplétion pour la barre de recherche (noms commençant par q)
+export function suggestProducts(q) {
+  const term = String(q ?? '').trim();
+  if (!term) return Promise.resolve([]);
+  return request(`/products/suggest?q=${encodeURIComponent(term)}`);
+}
+
 // Récupère le détail d'un produit (avec ses avis)
 export function getProduct(id) {
   return request(`/products/${id}`);
