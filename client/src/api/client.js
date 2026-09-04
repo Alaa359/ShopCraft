@@ -303,3 +303,11 @@ export function getChatMessages(token, roomId) {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
+
+// Suppression définitive d'une conversation (admin uniquement)
+export function deleteChatRoom(token, roomId) {
+  return request(`/chat/rooms/${roomId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}

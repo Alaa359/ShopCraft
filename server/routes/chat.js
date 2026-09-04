@@ -67,4 +67,21 @@ router.get('/rooms/:id/messages', auth, async (req, res, next) => {
   }
 });
 
+// DELETE /api/chat/rooms/:id
+// Suppression définitive d'une conversation (admin uniquement). Les messages
+// sont supprimés en cascade (onDelete: Cascade).
+router.delete('/rooms/:id', auth, async (req, res, next) => {
+  try {
+    if (req.user.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Accès refusé' });
+    }
+    const room = await prisma.chatRoom.findUnique({ where: { id: req.params.id } });
+    if (!room) return res.status(404).json({ error: 'Conversation introuvable' });
+    await prisma.chatRoom.delete({ where: { id: room.id } });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

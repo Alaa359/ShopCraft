@@ -21,6 +21,8 @@ export const useChatStore = create((set, get) => ({
   messages: [],
   unread: 0, // messages non lus pour la conversation affichée / reçus en arrière-plan
   activeRoomId: null, // room affichée (utile pour l'admin multi-conversations)
+  adminView: 'list', // admin : 'list' (choix client) ou 'conversation' (fils ouvert)
+  deleting: false,
   loading: false,
   error: null,
   token: null,
@@ -75,6 +77,16 @@ export const useChatStore = create((set, get) => ({
       }
       get().refreshRooms();
     });
+    // Un admin (ou un client) a supprimé une conversation : on la retire.
+    socket.on('chat:deleted', ({ roomId }) => {
+      const s = get();
+      set((st) => ({
+        rooms: st.rooms.filter((r) => r.id !== roomId),
+        ...(s.activeRoomId === roomId
+          ? { activeRoom: null, activeRoomId: null, messages: [], adminView: 'list' }
+          : {}),
+      }));
+    });
 
     // Chargement initial des conversations (REST) pour l'admin / le client.
     try {
@@ -89,7 +101,27 @@ export const useChatStore = create((set, get) => ({
     set({ connecting: false });
   },
 
-  // Ouvrir sa propre conversation (client) via Socket.IO (crée la room si besoin).
+  // L'admin sélectionne une conversation.
+  openRoom: (roomId) => {
+    if (!socket) return;
+    const s = get();
+    const room = s.rooms.find((r) => r.id === roomId) || s.activeRoom;
+    if (!room) return;
+    socket.emit('chat:join', roomId, (res) => {
+      if (res && res.room) {
+        set({ activeRoom: res.room, activeRoomId: roomId, messages: res.messages || [], adminView: 'conversation' });
+        // Les messages de cette conversation ne sont plus à compter en non-lus.
+        set((st) => ({ unread: Math.max(0, st.unread - s.messages.filter((m) => !m.seen && m.roomId === roomId).length) }));
+      }
+    });
+  },
+
+  // L'admin revient à la liste des clients.
+  backToList: () => {
+    set({ adminView: 'list', activeRoom: null, activeRoomId: null, messages: [] });
+  },
+
+  // Un client rafraîchit sa propre conversation (après chat:open).
   openMyRoom: (emitUnread) => {
     const { user } = get();
     const t = socket;
@@ -102,17 +134,21 @@ export const useChatStore = create((set, get) => ({
     });
   },
 
-  // L'admin sélectionne une conversation.
-  openRoom: (roomId) => {
+  // Suppression définitive d'une conversation (admin).
+  deleteRoom: (roomId) => {
     if (!socket) return;
-    const s = get();
-    const room = s.rooms.find((r) => r.id === roomId) || s.activeRoom;
-    if (!room) return;
-    socket.emit('chat:join', roomId, (res) => {
-      if (res && res.room) {
-        set({ activeRoom: res.room, activeRoomId: roomId, messages: res.messages || [] });
-        // Les messages de cette conversation ne sont plus à compter en non-lus.
-        set((st) => ({ unread: Math.max(0, st.unread - s.messages.filter((m) => !m.seen && m.roomId === roomId).length) }));
+    set({ deleting: true });
+    socket.emit('chat:delete', roomId, (res) => {
+      set({ deleting: false });
+      if (res && res.ok) {
+        const s = get();
+        set((st) => ({
+          rooms: st.rooms.filter((r) => r.id !== roomId),
+          ...(s.activeRoomId === roomId
+            ? { activeRoom: null, activeRoomId: null, messages: [], adminView: 'list' }
+            : {}),
+        }));
+        get().refreshRooms();
       }
     });
   },
@@ -148,7 +184,7 @@ export const useChatStore = create((set, get) => ({
     set({
       connected: false, rooms: [], activeRoom: null, activeRoomId: null,
       messages: [], unread: 0, open: false, loading: false, error: null,
-      token: null, user: null,
+      token: null, user: null, adminView: 'list', deleting: false,
     });
   },
 }));

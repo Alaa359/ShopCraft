@@ -87,11 +87,15 @@ export function initChat(io) {
     socket.on('chat:join', async (roomId, cb) => {
       try {
         if (!isAdmin) return cb && cb({ error: 'Accès refusé' });
-        const room = await prisma.chatRoom.findUnique({ where: { id: roomId } });
+        const room = await prisma.chatRoom.findUnique({
+          where: { id: roomId },
+          include: { user: SELECT_AUTHOR },
+        });
         if (!room) return cb && cb({ error: 'Conversation introuvable' });
         socket.join(`chat:room:${room.id}`);
         // L'admin prend le statut de la conversation en charge.
         await prisma.chatRoom.update({ where: { id: room.id }, data: { status: 'ACTIVE' } });
+        room.status = 'ACTIVE';
         const messages = await prisma.chatMessage.findMany({
           where: { roomId: room.id },
           orderBy: { createdAt: 'asc' },
@@ -159,6 +163,21 @@ export function initChat(io) {
         if (!isAdmin) return cb && cb({ error: 'Accès refusé' });
         await prisma.chatRoom.update({ where: { id: roomId }, data: { status: 'CLOSED' } });
         io.to(`chat:room:${roomId}`).emit('chat:status', { status: 'CLOSED' });
+        cb && cb({ ok: true });
+      } catch (err) {
+        cb && cb({ error: err.message });
+      }
+    });
+
+    // Suppression définitive d'une conversation par un admin (messages inclus).
+    socket.on('chat:delete', async (roomId, cb) => {
+      try {
+        if (!isAdmin) return cb && cb({ error: 'Accès refusé' });
+        const room = await prisma.chatRoom.findUnique({ where: { id: roomId } });
+        if (!room) return cb && cb({ error: 'Conversation introuvable' });
+        await prisma.chatRoom.delete({ where: { id: roomId } });
+        // Détruit aussi la conversation chez les participants encore connectés.
+        io.to(`chat:room:${roomId}`).emit('chat:deleted', { roomId });
         cb && cb({ ok: true });
       } catch (err) {
         cb && cb({ error: err.message });
