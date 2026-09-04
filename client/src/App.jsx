@@ -2,6 +2,7 @@ import { Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar.jsx';
 import Toast from './components/Toast.jsx';
 import SupportModals from './components/SupportModals.jsx';
+import ChatWidget from './components/ChatWidget.jsx';
 import AdminLayout from './components/AdminLayout.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import AdminRoute from './components/AdminRoute.jsx';
@@ -30,6 +31,7 @@ export default function App() {
       <Navbar />
       <Toast />
       <SupportModals />
+      <ChatWidget />
       <main className={isFullPage ? 'page-full' : 'container'}>
         <Routes>
           <Route path="/" element={<Home />} />

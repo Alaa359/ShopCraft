@@ -287,3 +287,19 @@ export function markNotificationsRead(token, id = null) {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
+
+// ---------- Chat en direct (support) ----------
+
+// Conversations : la sienne (client) ou toutes (admin)
+export function getChatRooms(token) {
+  return request('/chat/rooms', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+// Historique des messages d'une conversation (propriétaire ou admin)
+export function getChatMessages(token, roomId) {
+  return request(`/chat/rooms/${roomId}/messages`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}

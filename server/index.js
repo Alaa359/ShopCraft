@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import productsRouter from './routes/products.js';
 import authRouter from './routes/auth.js';
 import ordersRouter from './routes/orders.js';
@@ -10,6 +12,8 @@ import statsRouter from './routes/stats.js';
 import reviewsRouter from './routes/reviews.js';
 import supportRouter from './routes/support.js';
 import ratesRouter from './routes/rates.js';
+import chatRouter from './routes/chat.js';
+import { initChat } from './chat/socket.js';
 import { stripe, stripeEnabled, stripeWebhookSecret } from './lib/stripe.js';
 import { buildCart, CartError } from './lib/cart.js';
 import { createOrderFromCart, getOrderByPaymentIntent } from './lib/orderService.js';
@@ -127,6 +131,7 @@ app.use('/api/reviews', reviewsRouter);
 app.use('/api/upload', uploadsRouter);
 app.use('/api/support', supportRouter);
 app.use('/api/rates', ratesRouter);
+app.use('/api/chat', chatRouter);
 
 // 404 pour toute route inconnue
 app.use((req, res) => {
@@ -157,6 +162,19 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+
+// Serveur HTTP partagé : Express sert l'API, Socket.IO sert le chat en temps réel.
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin(origin, cb) {
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+      return cb(new Error('Origine non autorisée par CORS'));
+    },
+  },
+});
+initChat(io);
+
+httpServer.listen(PORT, () => {
   console.log(`API ShopCraft démarrée sur http://localhost:${PORT}`);
 });
